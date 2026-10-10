@@ -21,4 +21,5 @@ export type IconName =
   | 'fuel'
   | 'play'
   | 'plane'
-  | 'tag';
+  | 'tag'
+  | 'grip';

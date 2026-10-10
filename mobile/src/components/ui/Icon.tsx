@@ -29,6 +29,7 @@ const SF: Record<IconName, SFSymbol> = {
   play: 'play.rectangle',
   plane: 'airplane',
   tag: 'tag',
+  grip: 'line.3.horizontal',
 };
 
 type Tone = 'primary' | 'secondary' | 'tertiary' | 'error' | 'on-action' | 'action';
