@@ -1,5 +1,10 @@
 {
   "dependencies": {
     "nfc-pcsc": "^0.8.1"
+  },
+  "scripts": {
+    "dev:hardware": "npm --prefix reader run dev:hardware",
+    "hardware:diagnose": "npm --prefix reader run --silent diagnose --",
+    "hardware:test": "npm --prefix reader run --silent hardware-test --"
   }
 }
