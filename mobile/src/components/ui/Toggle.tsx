@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { spring } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -20,23 +21,23 @@ export function Toggle({ value, onValueChange, label, description }: { value: bo
   const start = useSharedValue(0);
 
   useEffect(() => {
-    x.value = withSpring(value ? TRAVEL : 0, spring.default);
+    x.set(withSpring(value ? TRAVEL : 0, spring.default));
   }, [value, x]);
 
   const pan = Gesture.Pan()
     .onBegin(() => {
-      start.value = x.value;
+      start.set(x.get());
     })
     .onUpdate((e) => {
-      x.value = Math.min(TRAVEL, Math.max(0, start.value + e.translationX));
+      x.set(Math.min(TRAVEL, Math.max(0, start.get() + e.translationX)));
     })
     .onEnd((e) => {
-      const on = e.velocityX !== 0 ? e.velocityX > 0 : x.value > TRAVEL / 2;
-      x.value = withSpring(on ? TRAVEL : 0, spring.default);
-      if (on !== value) runOnJS(onValueChange)(on);
+      const on = e.velocityX !== 0 ? e.velocityX > 0 : x.get() > TRAVEL / 2;
+      x.set(withSpring(on ? TRAVEL : 0, spring.default));
+      if (on !== value) scheduleOnRN(onValueChange, on);
     });
 
-  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
 
   return (
     <Pressable
