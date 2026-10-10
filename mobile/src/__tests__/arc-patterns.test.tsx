@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import Assistant from '@/app/(tabs)/assistant';
-import { segmentsFor } from '@/components/reclaimed/SpendDonut';
+import { segmentsFor } from '@/components/onetap/SpendDonut';
 import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { RollingNumber } from '@/components/ui/RollingNumber';
 import { api } from '@/lib/api';
@@ -44,7 +44,7 @@ describe('ConfirmMorph', () => {
 
   const props = {
     label: 'Sign out',
-    prompt: 'Sign out of Reclaimed on this phone?',
+    prompt: 'Sign out of OneTap on this phone?',
     confirmLabel: 'Sign out now',
     pendingLabel: 'Signing out',
     doneLabel: 'Signed out',

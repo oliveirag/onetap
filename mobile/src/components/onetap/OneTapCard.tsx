@@ -8,12 +8,12 @@ import { useTheme } from '@/theme/ThemeProvider';
 // The one inverse object on screen: the mono accent is literally the card.
 // `status` says what the card does right now ("Best card, automatically" in Auto,
 // "Always Amex Gold" in Manual), printed on the face like Curve's "Used automatically".
-export function ReclaimedCard({ last4, status, auto = false, onLongPress }: { last4: string; status?: string; auto?: boolean; onLongPress?: () => void }) {
+export function OneTapCard({ last4, status, auto = false, onLongPress }: { last4: string; status?: string; auto?: boolean; onLongPress?: () => void }) {
   const { theme } = useTheme();
   const face = (
     <View
       accessible
-      accessibilityLabel={`Reclaimed card ending ${last4}${status ? `, ${status}` : ''}`}
+      accessibilityLabel={`OneTap card ending ${last4}${status ? `, ${status}` : ''}`}
       style={{
         aspectRatio: 1.6,
         borderRadius: theme.radius.xl,
@@ -25,7 +25,7 @@ export function ReclaimedCard({ last4, status, auto = false, onLongPress }: { la
       }}
     >
       <Text variant="h4" tone="on-action">
-        Reclaimed
+        OneTap
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: theme.space.md }}>
         <Text tone="on-action" style={{ fontVariant: ['tabular-nums'] }}>

@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Reclaimed",
-    "slug": "reclaimed",
+    "name": "OneTap",
+    "slug": "onetap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "reclaimed",
+    "scheme": "onetap",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.oliveirag.reclaimed",
+      "bundleIdentifier": "com.oliveirag.onetap",
       "usesAppleSignIn": true,
       "supportsTablet": false,
       "appleTeamId": "NL5855QHYU"

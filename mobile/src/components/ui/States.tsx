@@ -7,7 +7,7 @@ import { Icon } from './Icon';
 import { Text } from './Text';
 
 // Static placeholder at the final size so nothing jumps when data lands. No shimmer.
-// `aspectRatio` sizes it like a ratio-bound view (the Reclaimed card) instead of a fixed height.
+// `aspectRatio` sizes it like a ratio-bound view (the OneTap card) instead of a fixed height.
 export function Skeleton({
   height,
   width = '100%',

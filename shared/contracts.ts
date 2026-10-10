@@ -14,7 +14,7 @@ export interface CheckoutRequest {
 
 export interface CheckoutResponse {
   status: "approved" | "declined" | "unknown_card" | "error";
-  last4: string | null;          // Reclaimed card only; null if unknown
+  last4: string | null;          // OneTap card only; null if unknown
   transactionId: string | null;
   timings: {
     tapAt: string;
@@ -45,7 +45,7 @@ export interface Alternative {
 export interface TransactionRow {
   id: string;
   user_id: string;
-  reclaimed_card_id: string;
+  onetap_card_id: string;
   lithic_token: string | null;   // null for seeded rows
   merchant_id: string | null;
   merchant_name: string;
@@ -108,7 +108,7 @@ export interface ProfileRow {
   onboarding_step: OnboardingStep;
 }
 
-export interface ReclaimedCardRow {
+export interface OneTapCardRow {
   id: string;
   last4: string;
   state: "open" | "paused";

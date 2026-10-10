@@ -1,7 +1,7 @@
 import { ActionSheetIOS, ScrollView, View } from 'react-native';
 
-import { RoutingRules } from '@/components/reclaimed/RoutingRules';
-import { SortableCardList } from '@/components/reclaimed/SortableCardList';
+import { RoutingRules } from '@/components/onetap/RoutingRules';
+import { SortableCardList } from '@/components/onetap/SortableCardList';
 import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
@@ -59,7 +59,7 @@ export default function Cards() {
       ) : cards.error ? (
         <ErrorState what="Your cards did not load." todo="Check your connection and try again." onRetry={() => cards.refetch()} />
       ) : !cards.data?.length ? (
-        <Empty title="No cards connected" body="Connect your credit cards so Reclaimed can route each purchase." />
+        <Empty title="No cards connected" body="Connect your credit cards so OneTap can route each purchase." />
       ) : (
         <>
           <View style={{ gap: theme.space.sm }}>
@@ -96,7 +96,7 @@ export default function Cards() {
       <View style={{ marginTop: theme.space.xl }}>
         <ConfirmMorph
           label="Sign out"
-          prompt="Sign out of Reclaimed on this phone?"
+          prompt="Sign out of OneTap on this phone?"
           confirmLabel="Sign out"
           pendingLabel="Signing out"
           doneLabel="Signed out"

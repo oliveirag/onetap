@@ -1,5 +1,5 @@
 import type { ProfileRow, TransactionRow, UserCardRow } from '../types';
-import { mockCards, mockProfile, mockRates, mockReclaimedCard, seedTransactions } from './fixtures';
+import { mockCards, mockProfile, mockRates, mockOneTapCard, seedTransactions } from './fixtures';
 
 // In-memory stand-in for the user's Supabase rows. Lives for the app session.
 let profile: ProfileRow = { ...mockProfile };
@@ -9,7 +9,7 @@ let transactions: TransactionRow[] = seedTransactions(new Date());
 export const mockStore = {
   profile: () => ({ ...profile }),
   cards: () => cards.map((c) => ({ ...c })),
-  reclaimedCard: () => ({ ...mockReclaimedCard }),
+  oneTapCard: () => ({ ...mockOneTapCard }),
   rates: () => mockRates.map((r) => ({ ...r })),
   transactions: () => [...transactions],
   updateProfile(patch: Partial<ProfileRow>) {

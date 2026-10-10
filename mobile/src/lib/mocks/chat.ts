@@ -17,7 +17,7 @@ const POINTS: Record<string, string> = {
 function spendingReply(message: string): string {
   const txs = mockStore.transactions();
   const s = aggregate(txs, mockStore.cards());
-  if (s.totalSpendCents === 0) return 'You have no purchases through Reclaimed this month yet.';
+  if (s.totalSpendCents === 0) return 'You have no purchases through OneTap this month yet.';
 
   const q = message.toLowerCase();
   if (q.includes('earned the most')) {
