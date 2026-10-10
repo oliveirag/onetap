@@ -10,18 +10,18 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export function PressableScale({ style, children, onPressIn, onPressOut, hitSlop, ...rest }: Omit<PressableProps, 'style'> & { style?: StyleProp<ViewStyle> }) {
   const { reduceMotion } = useTheme();
   const s = useSharedValue(1);
-  const animated = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: s.get() }] }));
 
   return (
     <AnimatedPressable
       {...rest}
       hitSlop={hitSlop ?? 8}
       onPressIn={(e) => {
-        if (!reduceMotion) s.value = withTiming(scale.press, { duration: duration.press, easing: ease.out });
+        if (!reduceMotion) s.set(withTiming(scale.press, { duration: duration.press, easing: ease.out }));
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        s.value = withSpring(1, spring.default);
+        s.set(withSpring(1, spring.default));
         onPressOut?.(e);
       }}
       style={[style, animated]}

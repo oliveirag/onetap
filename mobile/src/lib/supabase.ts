@@ -13,6 +13,8 @@ if (!USE_MOCKS && (!url || !anonKey)) {
 }
 
 // In mock mode the client is never called; placeholders keep createClient from throwing.
-export const supabase = createClient(url ?? 'http://localhost:54321', anonKey ?? 'mock-anon-key', {
-  auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
+// `||` not `??`: an empty EXPO_PUBLIC_ value from .env arrives as '' and must fall back too.
+export const supabase = createClient(url || 'http://localhost:54321', anonKey || 'mock-anon-key', {
+  // No refresh timer in mock mode: there is no session to refresh.
+  auth: { storage: AsyncStorage, autoRefreshToken: !USE_MOCKS, persistSession: !USE_MOCKS, detectSessionInUrl: false },
 });
