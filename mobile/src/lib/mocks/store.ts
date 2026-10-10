@@ -15,6 +15,13 @@ export const mockStore = {
     profile = { ...profile, ...patch };
     return { ...profile };
   },
+  // Card order = priority (1 first). Lower priority wins routing ties.
+  setCardOrder(ids: string[]) {
+    const byId = new Map(cards.map((c) => [c.id, c]));
+    const next = ids.map((id, i) => ({ ...byId.get(id)!, priority: i + 1 }));
+    cards.splice(0, cards.length, ...next);
+    return ids;
+  },
   addTransaction(tx: TransactionRow) {
     if (!transactions.some((t) => t.id === tx.id)) transactions = [tx, ...transactions];
   },

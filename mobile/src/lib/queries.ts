@@ -109,6 +109,39 @@ export function useSetManualCard() {
   return { ...patch, mutate: (cardId: string) => patch.mutate({ manual_card_id: cardId }) };
 }
 
+export function useSetDefaultCard() {
+  const patch = useProfilePatch();
+  return { ...patch, mutate: (cardId: string) => patch.mutate({ default_card_id: cardId }) };
+}
+
+// Saves a new card order as priorities 1..n. Optimistic, so the list never jumps back mid-drop.
+export function useReorderCards() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (order: string[]) => {
+      if (USE_MOCKS) return mockStore.setCardOrder(order);
+      await Promise.all(order.map((id, i) => must(supabase.from('user_cards').update({ priority: i + 1 }).eq('id', id).select('id'))));
+      return order;
+    },
+    onMutate: async (order) => {
+      await qc.cancelQueries({ queryKey: keys.cards });
+      const previous = qc.getQueryData<UserCardRow[]>(keys.cards);
+      if (previous) {
+        const byId = new Map(previous.map((c) => [c.id, c]));
+        qc.setQueryData(
+          keys.cards,
+          order.map((id, i) => ({ ...byId.get(id)!, priority: i + 1 })),
+        );
+      }
+      return { previous };
+    },
+    onError: (_e, _order, ctx) => {
+      if (ctx?.previous) qc.setQueryData(keys.cards, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.cards }),
+  });
+}
+
 export function useSpending() {
   const txs = useTransactions();
   const cards = useUserCards();
