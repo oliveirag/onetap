@@ -32,6 +32,19 @@ const SF: Record<IconName, SFSymbol> = {
   tag: 'tag',
   grip: 'line.3.horizontal',
   auto: 'wand.and.stars',
+  eye: 'eye',
+  'eye-off': 'eye.slash',
+  lock: 'lock',
+  mail: 'envelope',
+  sparkles: 'sparkles',
+  clock: 'clock',
+  bolt: 'bolt',
+  share: 'square.and.arrow.up',
+  tap: 'wave.3.right',
+  'thumbs-up': 'hand.thumbsup',
+  'thumbs-down': 'hand.thumbsdown',
+  question: 'questionmark.circle',
+  student: 'graduationcap',
 };
 
 type Tone = 'primary' | 'secondary' | 'tertiary' | 'error' | 'on-action' | 'action';
