@@ -3,6 +3,7 @@ export type IconName =
   | 'plus'
   | 'arrow-right'
   | 'arrow-left'
+  | 'arrow-up'
   | 'check'
   | 'x'
   | 'chevron-down'
@@ -22,4 +23,5 @@ export type IconName =
   | 'play'
   | 'plane'
   | 'tag'
-  | 'grip';
+  | 'grip'
+  | 'auto';
