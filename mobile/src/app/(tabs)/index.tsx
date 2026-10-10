@@ -28,7 +28,7 @@ export default function Home() {
       style={{ flex: 1, backgroundColor: theme.color.surface.page }}
       contentContainerStyle={{ padding: theme.pageMargin, paddingBottom: theme.space['3xl'], gap: theme.space.xl }}
     >
-      {card.data ? <ReclaimedCard last4={card.data.last4} onLongPress={devTap} /> : <Skeleton height={210} radius={theme.radius.xl} />}
+      {card.data ? <ReclaimedCard last4={card.data.last4} onLongPress={devTap} /> : <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />}
 
       <ModeControl />
 
@@ -37,9 +37,12 @@ export default function Home() {
           Recent activity
         </Text>
         {txs.isLoading ? (
-          <View style={{ gap: theme.space.sm }}>
+          // Same box as a TransactionRow (two text lines plus its vertical padding), so rows land in place.
+          <View>
             {[0, 1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} height={56} />
+              <View key={i} style={{ paddingVertical: theme.space.sm }}>
+                <Skeleton height={44} />
+              </View>
             ))}
           </View>
         ) : txs.error ? (

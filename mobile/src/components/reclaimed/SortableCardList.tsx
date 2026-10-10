@@ -112,11 +112,15 @@ function SortableRow({
       scheduleOnRN(onCommit, orderFromPositions(positions.get()));
     });
 
+  const page = theme.color.surface.page;
+  const raised = theme.color.surface.raised;
   const style = useAnimatedStyle(() => {
     const dragging = active.get() === id;
     const slot = (positions.get()[id] ?? 0) * ROW;
     return {
       zIndex: dragging ? 1 : 0,
+      // Lifted reads as one surface step up (dark mode has no shadows), not just 2% bigger.
+      backgroundColor: dragging ? raised : page,
       transform: [
         { translateY: dragging ? dragTop.get() : withSpring(slot, spring.default) },
         { scale: withSpring(dragging ? 1.02 : 1, spring.default) },
@@ -141,15 +145,16 @@ function SortableRow({
             if (e.nativeEvent.actionName === 'moveUp' && index > 0) onMove(index - 1);
             if (e.nativeEvent.actionName === 'moveDown' && index < count - 1) onMove(index + 1);
           }}
-          style={{
+          // Highlight on touch-down: the tap opens a sheet, so the row must answer before release.
+          style={({ pressed }) => ({
             height: ROW,
             flexDirection: 'row',
             alignItems: 'center',
             gap: theme.space.md,
-            backgroundColor: theme.color.surface.page,
+            backgroundColor: pressed ? theme.color.surface.hover : 'transparent',
             borderBottomWidth: 1,
             borderColor: theme.color.border.default,
-          }}
+          })}
         >
           <CardArt art={card.card_product?.card_art ?? 'solid'} />
           <View style={{ flex: 1 }}>

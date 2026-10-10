@@ -72,9 +72,16 @@ export function Segmented<T extends string>({
             onPress={() => !selected && onChange(o.value)}
             style={{ flex: 1, minHeight: theme.controlHeight.sm, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text variant="body-sm" tone={selected ? 'primary' : 'secondary'} style={{ fontFamily: selected ? 'JBMono-Medium' : 'JBMono-Regular' }}>
-              {o.label}
-            </Text>
+            {/* Touch-down feedback like UISegmentedControl: the label dims until release. */}
+            {({ pressed }) => (
+              <Text
+                variant="body-sm"
+                tone={selected ? 'primary' : 'secondary'}
+                style={{ fontFamily: selected ? 'JBMono-Medium' : 'JBMono-Regular', opacity: pressed && !selected ? 0.5 : 1 }}
+              >
+                {o.label}
+              </Text>
+            )}
           </Pressable>
         );
       })}
