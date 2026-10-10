@@ -4,7 +4,7 @@ Guidance for AI coding agents (Claude Code, Cursor, and others) working in this 
 
 ## What this is
 
-Reclaimed: one card that routes every purchase to the best of the credit cards the user already
+OneTap: one card that routes every purchase to the best of the credit cards the user already
 owns. A judge taps an NFC card at a store laptop, Lithic sends a live authorization to our backend,
 we pick the underlying card by category, and the phone shows the result within 2 seconds.
 
@@ -69,3 +69,9 @@ Agree these before building against them; every workstream uses fake data that m
 
 - No build system exists yet at the root. Once each part is scaffolded, document its commands here.
 - Don't commit or push unless asked.
+- Git workflow for this project only: for each authorized change set, create a new feature branch,
+  commit on that branch, push it, and open a pull request against the repository's default branch
+  for approval. Never commit or push directly to the default branch, and do not merge a pull request
+  without explicit approval.
+- Before pushing, fetch the latest base branch and resolve any merge conflicts. After opening the
+  pull request, verify that GitHub reports it as mergeable.

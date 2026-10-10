@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView } from 'react-native';
 
-import { Receipt } from '@/components/reclaimed/Receipt';
+import { Receipt } from '@/components/onetap/Receipt';
 import { ErrorState, Skeleton } from '@/components/ui/States';
 import { useTransaction, useUserCards } from '@/lib/queries';
 import { useTheme } from '@/theme/ThemeProvider';

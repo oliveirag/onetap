@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { CategoryBars } from '@/components/reclaimed/CategoryBars';
-import { SpendDonut } from '@/components/reclaimed/SpendDonut';
+import { CategoryBars } from '@/components/onetap/CategoryBars';
+import { SpendDonut } from '@/components/onetap/SpendDonut';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Money } from '@/components/ui/Money';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
@@ -10,7 +10,7 @@ import { Text } from '@/components/ui/Text';
 import { useSpending } from '@/lib/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// PRD F8: understanding money only. Reclaimed transactions, current month. No limits, no declines.
+// PRD F8: understanding money only. OneTap transactions, current month. No limits, no declines.
 export default function Spending() {
   const { theme } = useTheme();
   const spending = useSpending();
@@ -39,7 +39,7 @@ export default function Spending() {
       ) : spending.error ? (
         <ErrorState what="Spending did not load." todo="Check your connection and try again." onRetry={() => spending.refetch()} />
       ) : !s || s.totalSpendCents === 0 ? (
-        <Empty title="No spending this month" body="Your purchases through Reclaimed show up here." />
+        <Empty title="No spending this month" body="Your purchases through OneTap show up here." />
       ) : (
         <>
           <View style={{ gap: theme.space.lg }}>

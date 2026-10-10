@@ -24,9 +24,9 @@ beforeEach(() => {
   mockStore.updateProfile({ routing_mode: 'auto', manual_card_id: null });
 });
 
-it('shows the Reclaimed card and recent activity from the feed', async () => {
+it('shows the OneTap card and recent activity from the feed', async () => {
   renderHome();
-  expect(await screen.findByLabelText('Reclaimed card ending 4821, Best card, automatically')).toBeTruthy();
+  expect(await screen.findByLabelText('OneTap card ending 4821, Best card, automatically')).toBeTruthy();
   expect((await screen.findAllByText(/Sunshine Fuel|Knight Bites|Pegasus Market|StreamBox|Orlando Air|Lakeside Inn|Campus Books|Citrus Coffee/)).length).toBeGreaterThan(0);
 });
 
@@ -41,7 +41,7 @@ it('shows the chosen card in Manual mode', async () => {
   mockStore.updateProfile({ routing_mode: 'manual', manual_card_id: 'card-citi' });
   renderHome();
   expect(await screen.findByText('Custom Cash')).toBeTruthy();
-  expect(screen.getByLabelText('Reclaimed card ending 4821, Always Custom Cash')).toBeTruthy();
+  expect(screen.getByLabelText('OneTap card ending 4821, Always Custom Cash')).toBeTruthy();
 });
 
 it("shows this month's spend and rewards, matching the Spending tab", async () => {

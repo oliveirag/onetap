@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
-import { Composer, MessageList, TypingDots, type ChatMessage } from '@/components/reclaimed/ChatThread';
+import { Composer, MessageList, TypingDots, type ChatMessage } from '@/components/onetap/ChatThread';
 import { Button } from '@/components/ui/Button';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Segmented } from '@/components/ui/Segmented';
