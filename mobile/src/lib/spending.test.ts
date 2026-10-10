@@ -5,7 +5,7 @@ let n = 0;
 const tx = (p: Partial<TransactionRow>): TransactionRow => ({
   id: String(n++),
   user_id: 'u',
-  reclaimed_card_id: 'r',
+  onetap_card_id: 'r',
   lithic_token: null,
   merchant_id: null,
   merchant_name: 'Knight Bites',

@@ -1,6 +1,6 @@
 import { ActionSheetIOS, ScrollView, View } from 'react-native';
 
-import { SortableCardList } from '@/components/reclaimed/SortableCardList';
+import { SortableCardList } from '@/components/onetap/SortableCardList';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
@@ -56,7 +56,7 @@ export default function Cards() {
       ) : cards.error ? (
         <ErrorState what="Your cards did not load." todo="Check your connection and try again." onRetry={() => cards.refetch()} />
       ) : !cards.data?.length ? (
-        <Empty title="No cards connected" body="Connect your credit cards so Reclaimed can route each purchase." />
+        <Empty title="No cards connected" body="Connect your credit cards so OneTap can route each purchase." />
       ) : (
         <>
           <SortableCardList cards={cards.data} defaultId={defaultId} onReorder={(order) => reorder.mutate(order)} onPressCard={onPressCard} />

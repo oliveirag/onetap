@@ -21,9 +21,9 @@ beforeEach(() => {
   mockStore.updateProfile({ routing_mode: 'auto', manual_card_id: null });
 });
 
-it('shows the Reclaimed card and recent activity from the feed', async () => {
+it('shows the OneTap card and recent activity from the feed', async () => {
   renderHome();
-  expect(await screen.findByLabelText('Reclaimed card ending 4821')).toBeTruthy();
+  expect(await screen.findByLabelText('OneTap card ending 4821')).toBeTruthy();
   expect((await screen.findAllByText(/Sunshine Fuel|Knight Bites|Pegasus Market|StreamBox|Orlando Air|Lakeside Inn|Campus Books|Citrus Coffee/)).length).toBeGreaterThan(0);
 });
 

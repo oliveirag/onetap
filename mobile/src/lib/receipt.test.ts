@@ -4,7 +4,7 @@ import type { TransactionRow } from './types';
 const base: TransactionRow = {
   id: 't1',
   user_id: 'u',
-  reclaimed_card_id: 'r',
+  onetap_card_id: 'r',
   lithic_token: 'l1',
   merchant_id: 'm',
   merchant_name: 'Knight Bites',

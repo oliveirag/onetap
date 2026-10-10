@@ -1,7 +1,7 @@
 // Typed fake data for EXPO_PUBLIC_USE_MOCKS=1. Mirrors the backend's routing rules (PRD F4) closely
 // enough to drive every screen before Supabase and Lithic are live. Swap the cards for Sultan's
 // real demo cards once the catalog is entered.
-import type { CategoryId, ProfileRow, ReclaimedCardRow, TransactionRow, UserCardRow } from '../types';
+import type { CategoryId, ProfileRow, OneTapCardRow, TransactionRow, UserCardRow } from '../types';
 
 export const MOCK_USER_ID = 'mock-user';
 
@@ -64,7 +64,7 @@ export const mockProfile: ProfileRow = {
   onboarding_step: 'done',
 };
 
-export const mockReclaimedCard: ReclaimedCardRow = { id: 'rc-1', last4: '4821', state: 'open' };
+export const mockOneTapCard: OneTapCardRow = { id: 'rc-1', last4: '4821', state: 'open' };
 
 // PRD F4 reward math: points = round(dollars x multiplier); value = round(points x cents per point).
 function earn(c: UserCardRow, m: MockMerchant) {
@@ -93,7 +93,7 @@ export function routeMock(m: MockMerchant, cards: UserCardRow[], profile: Profil
   return {
     id: id ?? `mock-${now.getTime()}-${live++}`,
     user_id: profile.id,
-    reclaimed_card_id: mockReclaimedCard.id,
+    onetap_card_id: mockOneTapCard.id,
     lithic_token: null,
     merchant_id: m.id,
     merchant_name: m.name,

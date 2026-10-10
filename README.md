@@ -1,4 +1,4 @@
-# Reclaimed: Product Requirements Document
+# OneTap: Product Requirements Document
 
 **Event:** Knight Hacks IX, UCF, Oct 9 to 11, 2026
 **Team:** Gui Oliveira, Sultan Lodi, Ehsan Ayoubi, Amer Samman
@@ -11,7 +11,7 @@
 ## 1. Overview and objectives
 
 ### What it is
-Reclaimed is one card that routes every purchase to the best of the credit cards you already own. You tap one card. The app picks which of your cards gets the charge, based on what earns the most rewards for that kind of purchase.
+OneTap is one card that routes every purchase to the best of the credit cards you already own. You tap one card. The app picks which of your cards gets the charge, based on what earns the most rewards for that kind of purchase.
 
 ### The problem
 People with more than one credit card have to remember which card earns the most at restaurants, at the grocery store, at the gas station, and so on. Most people do not, so they use one card for everything and lose rewards on every purchase.
@@ -28,7 +28,7 @@ People with more than one credit card have to remember which card earns the most
 | Functionality score of 5 | At least 90% of what we mention in the pitch works live, with no piece demoed separately |
 | Technical Understanding score of 5 | Architecture diagram and latency chart at the table; every teammate can explain their part and name the AI tools used |
 | Design score of 5 | One consistent visual system across the app and the store page, built from Gui's design system |
-| BNY track fit | The pitch frames Reclaimed as real-time authorization decisioning that improves a client experience |
+| BNY track fit | The pitch frames OneTap as real-time authorization decisioning that improves a client experience |
 
 ### What is out of scope
 - Moving real money or charging real cards
@@ -63,7 +63,7 @@ Acceptance criteria
 - [ ] A user can only read their own cards, transactions and chats (row-level security is on for every user table).
 
 ### F2. Onboarding (Must)
-Four steps: connect cards, confirm card matches, choose routing mode, receive the Reclaimed card.
+Four steps: connect cards, confirm card matches, choose routing mode, receive the OneTap card.
 
 Acceptance criteria
 - [ ] The user connects accounts through Plaid Link in sandbox and sees every credit card account returned, with name, last four digits, balance and limit.
@@ -109,7 +109,7 @@ Acceptance criteria
 - [ ] The store page shows 6 to 8 fictional merchants, each with a category, a basket and a fixed price.
 - [ ] After a merchant is chosen, the page shows "Tap your card" and waits.
 - [ ] A fake tap (a key press) and a real tap send the identical event. The page cannot tell them apart.
-- [ ] A tap produces "Approved" on the store page within 3 seconds, showing only the Reclaimed card's last four digits, as a real merchant would see.
+- [ ] A tap produces "Approved" on the store page within 3 seconds, showing only the OneTap card's last four digits, as a real merchant would see.
 - [ ] An unknown card shows "Card not recognized" and does not crash the page.
 - [ ] If the backend is unreachable, the page shows a clear error and a retry button.
 - [ ] The real reader is tested within one hour of delivery. If it fails, the fake tap is the demo.
@@ -139,12 +139,12 @@ Acceptance criteria
 
 ### F7. Home and routing mode toggle (Must)
 Acceptance criteria
-- [ ] Home shows the in-app Reclaimed card, the current mode, and a feed of recent transactions.
+- [ ] Home shows the in-app OneTap card, the current mode, and a feed of recent transactions.
 - [ ] One toggle switches Auto and Manual. The next tap uses the new mode with no app restart.
 - [ ] In Manual, the chosen card is always visible on Home and can be changed in two taps.
 
 ### F8. Spending view (Must)
-For understanding money only. No limits, no declines. Uses Reclaimed transactions only.
+For understanding money only. No limits, no declines. Uses OneTap transactions only.
 
 Acceptance criteria
 - [ ] Shows total spend, spend by category and spend by underlying card for the current month.
@@ -170,7 +170,7 @@ Acceptance criteria
 - [ ] The Assistant screen carries a note that point values and award prices are demo estimates.
 - [ ] If the Claude API fails, the screen shows a retry message and the rest of the app keeps working.
 
-Data scope: 3 transfer programs and about 6 award routes from Orlando, hand-entered. Point balances are seeded per card and grow with points earned through Reclaimed, because Plaid cannot read rewards balances.
+Data scope: 3 transfer programs and about 6 award routes from Orlando, hand-entered. Point balances are seeded per card and grow with points earned through OneTap, because Plaid cannot read rewards balances.
 
 ### F10. Reliability proof (Must)
 Acceptance criteria
@@ -240,7 +240,7 @@ Acceptance criteria
 |---|---|---|
 | Create Plaid link token | App | Starts Plaid Link |
 | Exchange Plaid token | App | Saves the connection and imports accounts |
-| Create Reclaimed card | App | Creates the Lithic virtual card at the end of onboarding |
+| Create OneTap card | App | Creates the Lithic virtual card at the end of onboarding |
 | Store checkout | Store page | Receives merchant and card ID, triggers the simulated authorization |
 | Lithic authorization webhook | Lithic | Receives the live authorization, runs routing, answers |
 | Pair card | Store page | Links an NFC card ID to an account using the pairing code |
@@ -398,7 +398,7 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 | is_active | boolean | |
 | created_at | timestamptz | |
 
-**reclaimed_cards** (one per user)
+**onetap_cards** (one per user)
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid, primary key | |
@@ -414,7 +414,7 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 |---|---|---|
 | id | uuid, primary key | |
 | user_id | uuid, references profiles | |
-| reclaimed_card_id | uuid, references reclaimed_cards | |
+| onetap_card_id | uuid, references onetap_cards | |
 | lithic_token | text, unique, nullable | Blocks duplicates; empty for seeded rows |
 | merchant_id | uuid, references merchants, nullable | |
 | merchant_name | text | |
@@ -464,11 +464,11 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 | created_at | timestamptz | |
 
 ### Relationships
-- A profile has many plaid_items, many user_cards, one reclaimed_card, many transactions and many chat_threads.
+- A profile has many plaid_items, many user_cards, one onetap_card, many transactions and many chat_threads.
 - A plaid_item has many user_cards.
 - A user_card belongs to one card_product. A card_product has six card_product_rates, one per category.
 - An mcc_map row points to one category. A merchant points to one mcc_map row.
-- A transaction belongs to one profile, one reclaimed_card, one routed user_card and one category.
+- A transaction belongs to one profile, one onetap_card, one routed user_card and one category.
 - A card_product links to transfer_partners through reward_currency. A transfer_partner links to award_options through partner_program.
 - A chat_thread has many chat_messages.
 
@@ -485,7 +485,7 @@ The contents of that page could not be read while writing this document, so colo
 |---|---|
 | Welcome | Sign in with Apple |
 | Onboarding (4 steps) | Connect, confirm matches, choose mode, meet your card |
-| Home | Reclaimed card, mode toggle, recent activity |
+| Home | OneTap card, mode toggle, recent activity |
 | Routing result | The tap result with "Why this card" |
 | Spending | Totals by category and card, rewards earned |
 | Assistant | Relay and Points planner |
@@ -638,7 +638,7 @@ All sandbox services are free. Treat the figures below as estimates and confirm 
 | Sultan | Why Claude is outside the routing path, how the planner computes before Claude explains, what is simulated |
 
 ### BNY Financial Services Challenge angle
-The brief asks for a tool that improves a process in the industry, with client experience and workflow automation named as examples. Reclaimed automates a decision every cardholder makes many times a day, using the same real-time authorization decisioning that card issuers run in production. Say that sentence to the BNY judges, then show the trace panel.
+The brief asks for a tool that improves a process in the industry, with client experience and workflow automation named as examples. OneTap automates a decision every cardholder makes many times a day, using the same real-time authorization decisioning that card issuers run in production. Say that sentence to the BNY judges, then show the trace panel.
 
 ### Table checklist
 - [ ] Laptop with store page, reader plugged in, fake tap ready
@@ -672,7 +672,7 @@ These were open questions answered with defaults. Change any of them and the rel
 | 2 | Auto mode ignores spending caps and annual fees; ties go to card order | F4 |
 | 3 | A failed decision still approves, using the default card | F4 |
 | 4 | A Plaid custom sandbox user provides named card accounts | F2 |
-| 5 | Point balances are seeded, then grow with Reclaimed earnings | F9 |
+| 5 | Point balances are seeded, then grow with OneTap earnings | F9 |
 | 6 | The Assistant answers only from 3 programs and about 6 routes | F9 |
 | 7 | Relay and the Points planner share one tab | F9 |
 | 8 | Spending view uses 30 days of labeled demo history | F8 |

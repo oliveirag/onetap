@@ -1,4 +1,4 @@
-Reclaimed app. Repo-wide rules (contracts, secrets, ownership) live in ../AGENTS.md; read it first.
+OneTap app. Repo-wide rules (contracts, secrets, ownership) live in ../AGENTS.md; read it first.
 
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 

@@ -5,12 +5,12 @@ import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 
 // The one inverse object on screen: the mono accent is literally the card.
-export function ReclaimedCard({ last4, onLongPress }: { last4: string; onLongPress?: () => void }) {
+export function OneTapCard({ last4, onLongPress }: { last4: string; onLongPress?: () => void }) {
   const { theme } = useTheme();
   const face = (
     <View
       accessible
-      accessibilityLabel={`Reclaimed card ending ${last4}`}
+      accessibilityLabel={`OneTap card ending ${last4}`}
       style={{
         aspectRatio: 1.6,
         borderRadius: theme.radius.xl,
@@ -22,7 +22,7 @@ export function ReclaimedCard({ last4, onLongPress }: { last4: string; onLongPre
       }}
     >
       <Text variant="h4" tone="on-action">
-        Reclaimed
+        OneTap
       </Text>
       <Text tone="on-action" style={{ fontVariant: ['tabular-nums'] }}>
         •••• {last4}

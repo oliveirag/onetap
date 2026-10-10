@@ -1,20 +1,20 @@
 import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
-import { ModeControl } from '@/components/reclaimed/ModeControl';
-import { ReclaimedCard } from '@/components/reclaimed/ReclaimedCard';
-import { TransactionRow } from '@/components/reclaimed/TransactionRow';
+import { ModeControl } from '@/components/onetap/ModeControl';
+import { OneTapCard } from '@/components/onetap/OneTapCard';
+import { TransactionRow } from '@/components/onetap/TransactionRow';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
 import { fakeTap } from '@/lib/mocks/fakeTap';
-import { useProfile, useReclaimedCard, useTransactions, useUserCards } from '@/lib/queries';
+import { useProfile, useOneTapCard, useTransactions, useUserCards } from '@/lib/queries';
 import { USE_MOCKS } from '@/lib/supabase';
 import { useTheme } from '@/theme/ThemeProvider';
 
 export default function Home() {
   const { theme } = useTheme();
   const profile = useProfile();
-  const card = useReclaimedCard();
+  const card = useOneTapCard();
   const cards = useUserCards();
   const txs = useTransactions();
 
@@ -28,7 +28,7 @@ export default function Home() {
       style={{ flex: 1, backgroundColor: theme.color.surface.page }}
       contentContainerStyle={{ padding: theme.pageMargin, paddingBottom: theme.space['3xl'], gap: theme.space.xl }}
     >
-      {card.data ? <ReclaimedCard last4={card.data.last4} onLongPress={devTap} /> : <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />}
+      {card.data ? <OneTapCard last4={card.data.last4} onLongPress={devTap} /> : <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />}
 
       <ModeControl />
 
@@ -48,7 +48,7 @@ export default function Home() {
         ) : txs.error ? (
           <ErrorState what="Activity did not load." todo="Check your connection and try again." onRetry={() => txs.refetch()} />
         ) : !txs.data?.length ? (
-          <Empty title="No purchases yet" body="Tap your Reclaimed card at the store and the result shows up here." />
+          <Empty title="No purchases yet" body="Tap your OneTap card at the store and the result shows up here." />
         ) : (
           txs.data.slice(0, 20).map((tx) => (
             <TransactionRow

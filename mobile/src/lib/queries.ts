@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 import { mockStore } from './mocks/store';
 import { aggregate } from './spending';
 import { supabase, USE_MOCKS } from './supabase';
-import type { ProfileRow, ReclaimedCardRow, RoutingMode, TransactionRow, UserCardRow } from './types';
+import type { ProfileRow, OneTapCardRow, RoutingMode, TransactionRow, UserCardRow } from './types';
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnReconnect: true, retry: 1, staleTime: 30_000 } },
@@ -18,7 +18,7 @@ AppState.addEventListener('change', (status) => focusManager.setFocused(status =
 export const keys = {
   profile: ['profile'] as const,
   cards: ['user-cards'] as const,
-  reclaimedCard: ['reclaimed-card'] as const,
+  oneTapCard: ['onetap-card'] as const,
   transactions: ['transactions'] as const,
   transaction: (id: string) => ['transaction', id] as const,
 };
@@ -46,11 +46,11 @@ export function useUserCards() {
   });
 }
 
-export function useReclaimedCard() {
+export function useOneTapCard() {
   return useQuery({
-    queryKey: keys.reclaimedCard,
+    queryKey: keys.oneTapCard,
     queryFn: () =>
-      USE_MOCKS ? mockStore.reclaimedCard() : must<ReclaimedCardRow | null>(supabase.from('reclaimed_cards').select('id, last4, state').maybeSingle()),
+      USE_MOCKS ? mockStore.oneTapCard() : must<OneTapCardRow | null>(supabase.from('onetap_cards').select('id, last4, state').maybeSingle()),
   });
 }
 
