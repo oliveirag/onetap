@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { TransactionListener } from '@/components/TransactionListener';
 import { queryClient } from '@/lib/queries';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -40,6 +41,8 @@ function Root() {
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      {/* userId arrives with sign-in (Task 7); in mock mode the listener runs without one. */}
+      <TransactionListener userId={null} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.surface.page } }}>
         <Stack.Screen name="(tabs)" />
         {/* Native iOS sheet: 1:1 drag, velocity handoff and rubber-banding come from the system. */}

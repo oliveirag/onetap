@@ -1,20 +1,28 @@
 import { useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
+import { ScrollView } from 'react-native';
 
-import { Money } from '@/components/ui/Money';
-import { Text } from '@/components/ui/Text';
-import { useTransaction } from '@/lib/queries';
+import { Receipt } from '@/components/reclaimed/Receipt';
+import { ErrorState, Skeleton } from '@/components/ui/States';
+import { useTransaction, useUserCards } from '@/lib/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// Placeholder: the receipt replaces this in Task 6.
 export default function Result() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const tx = useTransaction(id);
+  const cards = useUserCards();
+  const routed = cards.data?.find((c) => c.id === tx.data?.routed_card_id);
+
   return (
-    <View style={{ padding: theme.pageMargin, gap: theme.space.sm }}>
-      <Text variant="h3">{tx.data?.merchant_name ?? ''}</Text>
-      {tx.data ? <Money cents={tx.data.reward_value_cents} reward variant="display" /> : null}
-    </View>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: theme.pageMargin, paddingTop: theme.space['2xl'] }}>
+      {tx.data ? (
+        // key: router.replace swaps the transaction, and the print-in animation replays for the new one.
+        <Receipt key={tx.data.id} tx={tx.data} cardName={routed?.card_product?.name ?? routed?.account_name ?? 'Your card'} cardMask={routed?.mask} />
+      ) : tx.error ? (
+        <ErrorState what="This purchase did not load." todo="Try again, or close this sheet and open it from Home." onRetry={() => tx.refetch()} />
+      ) : (
+        <Skeleton height={420} />
+      )}
+    </ScrollView>
   );
 }
