@@ -2,6 +2,8 @@ import NetInfo from '@react-native-community/netinfo';
 import { focusManager, onlineManager, QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppState } from 'react-native';
 
+import { api } from './api';
+import { authBackend } from './auth';
 import { mockStore } from './mocks/store';
 import { aggregate } from './spending';
 import { supabase, USE_MOCKS } from './supabase';
@@ -167,11 +169,38 @@ export function useSpending() {
   };
 }
 
-// Ends the Supabase session and drops every cached user row. In mock mode there is no session,
-// so it resolves without touching the cache. Routing to sign-in arrives with Task 7.
+export function useConnectTestAccounts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.connectTestAccounts,
+    onSuccess: (cards) => qc.setQueryData(keys.cards, cards),
+  });
+}
+
+// Changes which catalog product a connected account is (PRD F2 match step).
+export function useSetCardProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ cardId, productId }: { cardId: string; productId: string }) => {
+      if (USE_MOCKS) return mockStore.setCardProduct(cardId, productId);
+      return must<UserCardRow>(
+        supabase.from('user_cards').update({ card_product_id: productId, match_source: 'user' }).eq('id', cardId).select('*, card_product:card_products(*)').single(),
+      );
+    },
+    onSuccess: (card) => qc.setQueryData<UserCardRow[]>(keys.cards, (old = []) => old.map((c) => (c.id === card.id ? card : c))),
+  });
+}
+
+export function useCreateOneTapCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createOneTapCard,
+    onSuccess: (card) => qc.setQueryData(keys.oneTapCard, card),
+  });
+}
+
+// Ends the session and drops every cached user row. The root gate sees no session and shows Welcome.
 export async function signOut() {
-  if (USE_MOCKS) return;
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  await authBackend.signOut();
   queryClient.clear();
 }

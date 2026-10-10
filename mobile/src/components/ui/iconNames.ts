@@ -24,4 +24,17 @@ export type IconName =
   | 'plane'
   | 'tag'
   | 'grip'
-  | 'auto';
+  | 'auto'
+  | 'eye'
+  | 'eye-off'
+  | 'lock'
+  | 'mail'
+  | 'sparkles'
+  | 'clock'
+  | 'bolt'
+  | 'share'
+  | 'tap'
+  | 'thumbs-up'
+  | 'thumbs-down'
+  | 'question'
+  | 'student';

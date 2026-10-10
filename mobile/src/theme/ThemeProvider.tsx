@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, useColorScheme } from 'react-native';
+import { AccessibilityInfo, Platform, useColorScheme } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { resolveTheme, type Scheme, type Theme } from './resolve';
@@ -17,6 +17,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [reduceTransparency, setReduceTransparency] = useState(false);
 
   useEffect(() => {
+    // iOS only: Android and web have no reduce-transparency setting, so the call doesn't exist there.
+    if (Platform.OS !== 'ios') return;
     AccessibilityInfo.isReduceTransparencyEnabled().then(setReduceTransparency);
     const sub = AccessibilityInfo.addEventListener('reduceTransparencyChanged', setReduceTransparency);
     return () => sub.remove();
