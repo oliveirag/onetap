@@ -1,0 +1,31 @@
+{
+  "name": "reclaimed-hardware-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reads NFC card UIDs from the ACR1252U PICC reader and reports tap events",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev:hardware": "node --watch-path=src --watch-path=../shared --import tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:watch": "vitest",
+    "diagnose": "tsx src/diagnose.ts",
+    "hardware-test": "tsx src/hardware-test.ts"
+  },
+  "dependencies": {
+    "nfc-pcsc": "^0.8.1",
+    "pino": "^9.14.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

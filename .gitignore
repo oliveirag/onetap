@@ -13,3 +13,6 @@ apps/mobile/android/
 packages/database/supabase/.branches/
 packages/database/supabase/.temp/
 .hardware-test-results/
+
+# Local secrets (never commit)
+secrets.local
