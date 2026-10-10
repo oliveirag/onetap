@@ -7,9 +7,22 @@ import { Icon } from './Icon';
 import { Text } from './Text';
 
 // Static placeholder at the final size so nothing jumps when data lands. No shimmer.
-export function Skeleton({ height, width = '100%', radius }: { height: number; width?: DimensionValue; radius?: number }) {
+// `aspectRatio` sizes it like a ratio-bound view (the Reclaimed card) instead of a fixed height.
+export function Skeleton({
+  height,
+  width = '100%',
+  radius,
+  aspectRatio,
+}: {
+  height?: number;
+  width?: DimensionValue;
+  radius?: number;
+  aspectRatio?: number;
+}) {
   const { theme } = useTheme();
-  return <View style={{ height, width, borderRadius: radius ?? theme.radius.md, backgroundColor: theme.color.surface.default }} />;
+  return (
+    <View style={{ height, width, aspectRatio, borderRadius: radius ?? theme.radius.md, backgroundColor: theme.color.surface.default }} />
+  );
 }
 
 export function Empty({ title, body, action }: { title: string; body: string; action?: ReactNode }) {

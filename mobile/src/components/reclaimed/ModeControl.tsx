@@ -64,7 +64,10 @@ export function ModeControl() {
               Every purchase uses this card
             </Text>
           </View>
-          <Button variant="ghost" size="sm" label="Change" onPress={pickCard} />
+          {/* Ghost buttons have no visible box: pull out by their padding so the label sits on the page margin. */}
+          <View style={{ marginRight: -theme.space.lg }}>
+            <Button variant="ghost" size="sm" label="Change" onPress={pickCard} />
+          </View>
         </View>
       ) : (
         <PressableScale

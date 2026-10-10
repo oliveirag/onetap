@@ -14,7 +14,10 @@ export default function Result() {
   const routed = cards.data?.find((c) => c.id === tx.data?.routed_card_id);
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: theme.pageMargin, paddingTop: theme.space['2xl'] }}>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: theme.pageMargin, paddingTop: theme.space['2xl'], paddingBottom: theme.space['3xl'] }}
+    >
       {tx.data ? (
         // key: router.replace swaps the transaction, and the print-in animation replays for the new one.
         <Receipt key={tx.data.id} tx={tx.data} cardName={routed?.card_product?.name ?? routed?.account_name ?? 'Your card'} cardMask={routed?.mask} />
