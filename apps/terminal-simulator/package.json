@@ -1,0 +1,27 @@
+{
+  "name": "@reclaimed/terminal-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n gateway,ui \"tsx watch --env-file-if-exists=../../.env server/gateway.ts\" \"vite\"",
+    "build": "vite build && tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@reclaimed/shared": "*",
+    "express": "^5.3.0",
+    "ws": "^8.22.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^8.3.4"
+  }
+}

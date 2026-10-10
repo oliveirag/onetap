@@ -1,0 +1,55 @@
+{
+  "name": "reclaimed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reclaimed Phase 1 — universal NFC payment card prototype (simulation and sandbox only).",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,terminal,hardware -c blue,magenta,green \"npm:dev:api\" \"npm:dev:terminal\" \"npm:dev:hardware\"",
+    "dev:api": "npm run dev -w @reclaimed/api",
+    "dev:mobile": "npm run start -w @reclaimed/mobile",
+    "dev:terminal": "npm run dev -w @reclaimed/terminal-simulator",
+    "dev:hardware": "npm run dev -w @reclaimed/hardware-bridge",
+    "hardware:diagnose": "npm run diagnose -w @reclaimed/hardware-bridge",
+    "hardware:test": "npm run physical-test -w @reclaimed/hardware-bridge",
+    "db:start": "npm run supabase:start -w @reclaimed/database",
+    "db:stop": "npm run supabase:stop -w @reclaimed/database",
+    "db:reset": "npm run supabase:reset -w @reclaimed/database",
+    "db:migrate": "npm run migrate -w @reclaimed/database",
+    "db:seed": "npm run seed -w @reclaimed/database",
+    "test": "npm run test:node && npm run test:mobile",
+    "test:node": "vitest run",
+    "test:mobile": "npm run test -w @reclaimed/mobile",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "build": "npm run build --workspaces --if-present",
+    "smoke": "tsx --env-file=.env scripts/smoke.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@supabase/supabase-js": "^2.117.3",
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3",
+    "ws": "^8.22.0"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "type": "module"
+}

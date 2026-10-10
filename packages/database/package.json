@@ -1,0 +1,29 @@
+{
+  "name": "@reclaimed/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "supabase:start": "supabase start --workdir .",
+    "supabase:stop": "supabase stop --workdir .",
+    "supabase:reset": "supabase db reset --workdir .",
+    "migrate": "tsx src/cli/migrate.ts",
+    "seed": "tsx src/cli/seed.ts"
+  },
+  "dependencies": {
+    "@reclaimed/shared": "*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.0",
+    "@electric-sql/pglite": "^0.5.8",
+    "supabase": "^2.120.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/pglite.ts"
+  }
+}
