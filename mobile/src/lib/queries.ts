@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 import { mockStore } from './mocks/store';
 import { aggregate } from './spending';
 import { supabase, USE_MOCKS } from './supabase';
-import type { ProfileRow, OneTapCardRow, RoutingMode, TransactionRow, UserCardRow } from './types';
+import type { CardProductRate, ProfileRow, OneTapCardRow, RoutingMode, TransactionRow, UserCardRow } from './types';
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnReconnect: true, retry: 1, staleTime: 30_000 } },
@@ -19,6 +19,7 @@ export const keys = {
   profile: ['profile'] as const,
   cards: ['user-cards'] as const,
   oneTapCard: ['onetap-card'] as const,
+  rates: ['card-rates'] as const,
   transactions: ['transactions'] as const,
   transaction: (id: string) => ['transaction', id] as const,
 };
@@ -43,6 +44,19 @@ export function useUserCards() {
       USE_MOCKS
         ? mockStore.cards()
         : must<UserCardRow[]>(supabase.from('user_cards').select('*, card_product:card_products(*)').order('priority')),
+  });
+}
+
+// Reference data (read-only to the app). Its own query, so the routing rules can fail on their own
+// without taking the card list down with them.
+export function useCardRates() {
+  return useQuery({
+    queryKey: keys.rates,
+    staleTime: Infinity,
+    queryFn: () =>
+      USE_MOCKS
+        ? mockStore.rates()
+        : must<CardProductRate[]>(supabase.from('card_product_rates').select('card_product_id, category_id, multiplier')),
   });
 }
 
@@ -151,4 +165,13 @@ export function useSpending() {
     refetch: () => Promise.all([txs.refetch(), cards.refetch()]),
     data: txs.data && cards.data ? aggregate(txs.data, cards.data) : undefined,
   };
+}
+
+// Ends the Supabase session and drops every cached user row. In mock mode there is no session,
+// so it resolves without touching the cache. Routing to sign-in arrives with Task 7.
+export async function signOut() {
+  if (USE_MOCKS) return;
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+  queryClient.clear();
 }

@@ -78,6 +78,13 @@ export interface CardProduct {
   is_generic: boolean;
 }
 
+// card_product_rates table: one row per product and category (README section 6).
+export interface CardProductRate {
+  card_product_id: string;
+  category_id: CategoryId;
+  multiplier: number;            // points or percent per dollar, e.g. 4 or 1.5
+}
+
 export interface UserCardRow {
   id: string;
   account_name: string;          // as returned by Plaid

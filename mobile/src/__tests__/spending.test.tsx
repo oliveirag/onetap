@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import Spending from '@/app/(tabs)/spending';
 import { mockStore } from '@/lib/mocks/store';
@@ -21,8 +21,9 @@ function renderSpending() {
 it('shows the month total, rewards and the demo-history label', async () => {
   const expected = aggregate(mockStore.transactions(), mockStore.cards());
   renderSpending();
-  expect(await screen.findByText(formatCents(expected.totalSpendCents))).toBeTruthy();
-  expect(screen.getByText(`+${formatCents(expected.rewardsCents)}`)).toBeTruthy();
+  // Totals roll digit by digit, so each is one accessible element read by its label.
+  expect(await screen.findByLabelText(formatCents(expected.totalSpendCents))).toBeTruthy();
+  expect(screen.getByLabelText(`plus ${formatCents(expected.rewardsCents)}`)).toBeTruthy();
   expect(screen.getByText('Includes demo history')).toBeTruthy();
 });
 
@@ -37,4 +38,16 @@ it('lists spend by card', async () => {
   renderSpending();
   expect(await screen.findByText('By card')).toBeTruthy();
   expect(screen.getAllByText(/Amex Gold|Sapphire Preferred|Custom Cash|Active Cash/).length).toBeGreaterThan(0);
+});
+
+it('starts on the largest category and moves the selection when another row is tapped', async () => {
+  const expected = aggregate(mockStore.transactions(), mockStore.cards());
+  const [top, second] = expected.byCategory;
+  const row = (c: { label: string; cents: number }) => new RegExp(`^${c.label}, ${formatCents(c.cents).replace('$', '\\$')}`);
+  renderSpending();
+
+  expect((await screen.findByRole('button', { name: row(top) })).props.accessibilityState).toEqual({ selected: true });
+  fireEvent.press(screen.getByRole('button', { name: row(second) }));
+  expect(screen.getByRole('button', { name: row(second) }).props.accessibilityState).toEqual({ selected: true });
+  expect(screen.getByRole('button', { name: row(top) }).props.accessibilityState).toEqual({ selected: false });
 });
