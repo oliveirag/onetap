@@ -77,4 +77,5 @@ Thumbs.db
 
 # Claude Code (shared CLAUDE.md, AGENTS.md and .claude/settings.json stay tracked)
 .claude/settings.local.json
+.claude/worktrees/
 CLAUDE.local.md
