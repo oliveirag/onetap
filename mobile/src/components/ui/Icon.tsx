@@ -10,6 +10,7 @@ const SF: Record<IconName, SFSymbol> = {
   plus: 'plus',
   'arrow-right': 'arrow.right',
   'arrow-left': 'arrow.left',
+  'arrow-up': 'arrow.up',
   check: 'checkmark',
   x: 'xmark',
   'chevron-down': 'chevron.down',
@@ -30,6 +31,7 @@ const SF: Record<IconName, SFSymbol> = {
   plane: 'airplane',
   tag: 'tag',
   grip: 'line.3.horizontal',
+  auto: 'wand.and.stars',
 };
 
 type Tone = 'primary' | 'secondary' | 'tertiary' | 'error' | 'on-action' | 'action';

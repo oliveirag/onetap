@@ -47,3 +47,18 @@ it('explains that card order breaks ties and that point balances are estimates',
   expect(await screen.findByText(/Order breaks ties/)).toBeTruthy();
   expect(await screen.findByText('Point balances are demo estimates')).toBeTruthy();
 });
+
+it('lists one routing rule per category with the winning card', async () => {
+  renderCards();
+  expect(await screen.findByLabelText('Use Amex Gold for dining, 4x')).toBeTruthy();
+  expect(screen.getByLabelText('Use Custom Cash for gas, 5x')).toBeTruthy();
+  expect(screen.getByLabelText('Use Sapphire Preferred for travel, 5x')).toBeTruthy();
+  expect(screen.getByLabelText('Use Active Cash for general, 2x')).toBeTruthy();
+});
+
+it('explains that rules wait while Manual is on', async () => {
+  mockStore.updateProfile({ routing_mode: 'manual', manual_card_id: 'card-citi' });
+  renderCards();
+  expect(await screen.findByText(/Manual is on, so every purchase uses Custom Cash/)).toBeTruthy();
+  mockStore.updateProfile({ routing_mode: 'auto', manual_card_id: null });
+});

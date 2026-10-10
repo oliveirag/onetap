@@ -1,7 +1,7 @@
 // Typed fake data for EXPO_PUBLIC_USE_MOCKS=1. Mirrors the backend's routing rules (PRD F4) closely
 // enough to drive every screen before Supabase and Lithic are live. Swap the cards for Sultan's
 // real demo cards once the catalog is entered.
-import type { CategoryId, ProfileRow, ReclaimedCardRow, TransactionRow, UserCardRow } from '../types';
+import type { CardProductRate, CategoryId, ProfileRow, ReclaimedCardRow, TransactionRow, UserCardRow } from '../types';
 
 export const MOCK_USER_ID = 'mock-user';
 
@@ -54,6 +54,11 @@ const RATES: Record<string, Record<CategoryId, number>> = {
   'card-citi': { dining: 1, groceries: 1, gas: 5, streaming: 1, travel: 1, general: 1 },
   'card-active': { dining: 2, groceries: 2, gas: 2, streaming: 2, travel: 2, general: 2 },
 };
+
+// The same multipliers as card_product_rates rows, keyed by each mock card's product id.
+export const mockRates: CardProductRate[] = Object.entries(RATES).flatMap(([cardId, byCategory]) =>
+  Object.entries(byCategory).map(([category_id, multiplier]) => ({ card_product_id: `p-${cardId}`, category_id: category_id as CategoryId, multiplier })),
+);
 
 export const mockProfile: ProfileRow = {
   id: MOCK_USER_ID,
