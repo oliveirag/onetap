@@ -24,3 +24,98 @@ export interface CheckoutResponse {
   };
   message?: string;              // human-readable, for errors
 }
+
+// ---------- Supabase rows (snake_case = Postgres column names) ----------
+
+export type CategoryId = "dining" | "groceries" | "gas" | "streaming" | "travel" | "general";
+export type RoutingMode = "auto" | "manual";
+export type DecisionReason = "best_rate" | "tie_priority" | "manual" | "fallback_default";
+export type OnboardingStep = "connect" | "match" | "mode" | "card" | "done";
+
+// One losing option on a routing decision. Stored in transactions.alternatives (jsonb).
+export interface Alternative {
+  user_card_id: string;
+  card_name: string;     // display name, so the app needs no join
+  mask: string;          // last four digits
+  multiplier: number;    // e.g. 3 or 1.5
+  value_cents: number;   // what this card would have earned, integer cents
+}
+
+// transactions table. The app builds the result screen from this row plus cached user cards.
+export interface TransactionRow {
+  id: string;
+  user_id: string;
+  reclaimed_card_id: string;
+  lithic_token: string | null;   // null for seeded rows
+  merchant_id: string | null;
+  merchant_name: string;
+  mcc: string;                   // 4 characters
+  category_id: CategoryId;
+  amount_cents: number;
+  routed_card_id: string;        // user_cards.id
+  routing_mode: RoutingMode;     // mode at decision time
+  decision_reason: DecisionReason;
+  multiplier: number;
+  points_earned: number;
+  reward_value_cents: number;
+  baseline_value_cents: number;  // what the default card would have earned
+  best_value_cents: number;      // what Auto would have earned
+  alternatives: Alternative[] | null;
+  status: "approved" | "declined";
+  is_seeded: boolean;            // true for demo history
+  created_at: string;            // ISO 8601 UTC
+}
+
+export interface CardProduct {
+  id: string;
+  issuer: string;
+  name: string;
+  network: "visa" | "mastercard" | "amex" | "discover";
+  reward_type: "points" | "cashback";
+  reward_currency: string;
+  cents_per_point: number;       // 1.0 for cash back
+  card_art: string;              // art key: "lines" | "dots" | "grid" | "solid" for the app
+  is_generic: boolean;
+}
+
+export interface UserCardRow {
+  id: string;
+  account_name: string;          // as returned by Plaid
+  mask: string;
+  card_product_id: string;
+  match_source: "auto" | "user";
+  priority: number;              // lower wins ties
+  current_balance_cents: number;
+  credit_limit_cents: number;
+  points_balance: number;
+  is_active: boolean;
+  card_product?: CardProduct;    // present when selected with card_products(*)
+}
+
+export interface ProfileRow {
+  id: string;
+  display_name: string | null;
+  routing_mode: RoutingMode;
+  manual_card_id: string | null; // required when routing_mode is "manual"
+  default_card_id: string | null;
+  onboarding_step: OnboardingStep;
+}
+
+export interface ReclaimedCardRow {
+  id: string;
+  last4: string;
+  state: "open" | "paused";
+}
+
+// ---------- Chat (app -> backend, camelCase like the other HTTP payloads) ----------
+
+export interface ChatRequest {
+  mode: "relay" | "points";
+  message: string;
+  threadId?: string;             // omit to start a new thread
+}
+
+export interface ChatResponse {
+  reply: string;
+  threadId: string;
+}
