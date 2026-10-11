@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import type {
   Alternative,
   CardProduct,
+  CardSpendingRow,
   CardProductRate,
   CategoryId,
   DecisionReason,
@@ -116,9 +117,21 @@ export function toUserCard(r: DbFundingAccount): UserCardRow {
   };
 }
 
-export function toOneTapCard(r: { id: string; display_id: string; status: string }): OneTapCardRow {
-  return { id: r.id, last4: r.display_id.replace(/[^0-9A-Z]/gi, '').slice(-4), state: r.status === 'FROZEN' ? 'paused' : 'open' };
+export function toOneTapCard(r: { id: string; display_id: string; status: string; uid_masked: string | null }): OneTapCardRow {
+  return {
+    id: r.id,
+    last4: r.display_id.replace(/[^0-9A-Z]/gi, '').slice(-4),
+    state: r.status === 'FROZEN' ? 'paused' : 'open',
+    physical_linked: r.uid_masked != null,
+  };
 }
+
+export function toCardSpending(r: Omit<CardSpendingRow, 'amount_cents'> & { amount_cents: Numeric }): CardSpendingRow {
+  return { ...r, amount_cents: num(r.amount_cents) };
+}
+
+/** First day of the phone's current month, as Plaid dates are written (YYYY-MM-DD). */
+export const monthStart = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
 export function toProfile(r: { id: string; full_name: string | null; routing_mode: RoutingMode; manual_card_id: string | null; default_card_id: string | null }): ProfileRow {
   return {
@@ -196,12 +209,26 @@ export const live = {
       r.card_product ? [{ card_product_id: appProductId(r.card_product.product_slug), category_id: r.category_id, multiplier: num(r.multiplier) }] : [],
     ),
 
+  // The card with the physical card attached wins; otherwise the newest (the digital card).
   oneTapCard: async () => {
-    const row = await must<{ id: string; display_id: string; status: string } | null>(
-      supabase.from('reclaimed_cards').select('id, display_id, status').in('status', ['ACTIVE', 'FROZEN']).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    const rows = await must<{ id: string; display_id: string; status: string; uid_masked: string | null }[]>(
+      supabase.from('reclaimed_cards').select('id, display_id, status, uid_masked').in('status', ['ACTIVE', 'FROZEN']).order('created_at', { ascending: false }).limit(5),
     );
+    const row = rows.find((r) => r.uid_masked != null) ?? rows[0];
     return row ? toOneTapCard(row) : null;
   },
+
+  cardSpending: async (now = new Date()) =>
+    (
+      await must<Parameters<typeof toCardSpending>[0][]>(
+        supabase
+          .from('card_spending')
+          .select('id, financial_account_id, account_name, mask, merchant, amount_cents, date, pending, category_id')
+          .gte('date', monthStart(now))
+          .order('date', { ascending: false })
+          .limit(500),
+      )
+    ).map(toCardSpending),
 
   transactions: async () =>
     (

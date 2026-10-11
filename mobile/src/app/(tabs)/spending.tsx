@@ -7,14 +7,18 @@ import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Money } from '@/components/ui/Money';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
-import { useSpending } from '@/lib/queries';
+import { summarizeCards } from '@/lib/dashboard';
+import { useCardSpending, useSpending } from '@/lib/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// PRD F8: understanding money only. OneTap transactions, current month. No limits, no declines.
-export default function Spending() {
+// Dashboard (PRD F8: understanding money only). This month's spending on every card connected
+// through Plaid, plus what OneTap earned on the purchases it routed. No limits, no declines.
+export default function Dashboard() {
   const { theme } = useTheme();
-  const spending = useSpending();
-  const s = spending.data;
+  const spending = useCardSpending();
+  const onetap = useSpending();
+  const s = spending.data ? summarizeCards(spending.data) : undefined;
+  const earned = onetap.data;
   // The donut and the category bars share one active category; the largest until one is tapped.
   const [picked, setPicked] = useState<string | null>(null);
   const activeId = s?.byCategory.some((c) => c.id === picked) ? picked! : (s?.byCategory[0]?.id ?? '');
@@ -39,31 +43,36 @@ export default function Spending() {
       ) : spending.error ? (
         <ErrorState what="Spending did not load." todo="Check your connection and try again." onRetry={() => spending.refetch()} />
       ) : !s || s.totalSpendCents === 0 ? (
-        <Empty title="No spending this month" body="Your purchases through OneTap show up here." />
+        <Empty title="No spending this month" body="Purchases on the cards you connect show up here." />
       ) : (
         <>
           <View style={{ gap: theme.space.lg }}>
             <View>
               <Text variant="body-sm" tone="secondary">
-                Spent
+                Spent across your cards
               </Text>
               <Money cents={s.totalSpendCents} variant="h1" roll />
+              <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>
+                {s.purchases} {s.purchases === 1 ? 'purchase' : 'purchases'} on {s.cardCount} {s.cardCount === 1 ? 'card' : 'cards'}
+              </Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: theme.space['2xl'] }}>
-              <View style={{ flex: 1 }}>
-                <Text variant="body-sm" tone="secondary">
-                  Rewards earned
-                </Text>
-                <Money cents={s.rewardsCents} reward variant="h3" roll />
+            {earned && earned.totalSpendCents > 0 ? (
+              <View style={{ flexDirection: 'row', gap: theme.space['2xl'] }}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="body-sm" tone="secondary">
+                    Rewards with OneTap
+                  </Text>
+                  <Money cents={earned.rewardsCents} reward variant="h3" roll />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text variant="body-sm" tone="secondary">
+                    Extra vs your default card
+                  </Text>
+                  <Money cents={earned.extraCents} reward variant="h3" roll />
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="body-sm" tone="secondary">
-                  Extra vs your default card
-                </Text>
-                <Money cents={s.extraCents} reward variant="h3" roll />
-              </View>
-            </View>
-            {s.hasSeeded ? <DemoLabel text="Includes demo history" /> : null}
+            ) : null}
+            <DemoLabel text="Plaid sandbox transactions" />
           </View>
 
           <CategoryBars
@@ -73,7 +82,39 @@ export default function Spending() {
             onSelect={setPicked}
             chart={<SpendDonut rows={s.byCategory} activeId={activeId} onSelect={setPicked} />}
           />
-          <CategoryBars title="By card" rows={s.byCard.map((c) => ({ id: c.id, label: c.name, cents: c.cents }))} />
+          <CategoryBars title="By card" rows={s.byCard} />
+
+          <View style={{ gap: theme.space.sm }}>
+            <Text variant="h4" accessibilityRole="header">
+              Recent purchases
+            </Text>
+            {s.recent.map((r) => (
+              <View
+                key={r.id}
+                accessible
+                accessibilityLabel={`${r.merchant}, ${r.account_name}, ${r.date}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.space.md,
+                  paddingVertical: theme.space.sm,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.color.border.default,
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text numberOfLines={1} style={{ fontFamily: 'JBMono-Medium' }}>
+                    {r.merchant}
+                  </Text>
+                  <Text variant="body-sm" tone="secondary" numberOfLines={1}>
+                    {r.mask ? `${r.account_name} •••• ${r.mask}` : r.account_name}
+                    {r.pending ? ' · pending' : ''}
+                  </Text>
+                </View>
+                <Money cents={r.amount_cents} variant="body-sm" />
+              </View>
+            ))}
+          </View>
         </>
       )}
     </ScrollView>

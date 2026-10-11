@@ -124,16 +124,21 @@ async function main() {
   const others = await app.from('mock_funding_accounts').select('id').neq('user_id', userId);
   check("App can't see other users' cards", !others.error && others.data?.length === 0);
 
-  // 4. Setup step 4: link the OneTap card by tapping it while the request waits.
+  // 4. Setup step 4: the digital OneTap card, then the physical card attached with a tap.
+  const digital = await api<{ id: string; last4: string; state: string; physical_linked: boolean }>(token, '/onetap/card');
+  check('Created the digital OneTap card', digital.body.success && digital.body.data.physical_linked === false,
+    digital.body.success ? `•••• ${digital.body.data.last4}` : JSON.stringify(digital.body));
   const uid = `04${randomBytes(6).toString('hex').toUpperCase()}`;
-  const linking = api<{ id: string; last4: string; state: string }>(token, '/onetap/card');
+  const linking = api<{ id: string; last4: string; state: string; physical_linked: boolean }>(token, '/onetap/card/physical');
   await sleep(600);
   const enrollTap = await bridgeTap(uid);
   const linked = await linking;
-  check('Linked the OneTap card with a tap', enrollTap.outcome === 'ENROLLED' && linked.body.success && linked.body.data.state === 'open',
-    linked.body.success ? `•••• ${linked.body.data.last4}` : JSON.stringify(linked.body));
-  const oneTap = await app.from('reclaimed_cards').select('id, display_id, status').in('status', ['ACTIVE', 'FROZEN']).limit(1).maybeSingle();
-  check('App reads its OneTap card', !oneTap.error && oneTap.data?.id === (linked.body.success ? linked.body.data.id : ''));
+  check('Attached the physical card to the same OneTap card', enrollTap.outcome === 'ENROLLED' && linked.body.success && linked.body.data.physical_linked &&
+    digital.body.success && linked.body.data.id === digital.body.data.id, linked.body.success ? `•••• ${linked.body.data.last4}` : JSON.stringify(linked.body));
+  const oneTap = await app.from('reclaimed_cards').select('id, display_id, status, uid_masked').in('status', ['ACTIVE', 'FROZEN']);
+  check('App reads one OneTap card, digital and physical', !oneTap.error && oneTap.data?.length === 1 && oneTap.data[0]!.uid_masked != null);
+  const dashboard = await app.from('card_spending').select('id, category_id, amount_cents').limit(500);
+  check('App reads its card spending (Dashboard)', !dashboard.error, dashboard.error?.message ?? `${dashboard.data?.length} purchases`);
 
   // 5. Realtime: the app's listener (TransactionListener.tsx).
   const received: Record<string, unknown>[] = [];

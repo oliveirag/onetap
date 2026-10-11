@@ -231,15 +231,15 @@ export class PlaidService {
           if (!accountId) continue; // account not shared with Reclaimed
           await tx.query(
             `insert into transactions (user_id, financial_account_id, plaid_transaction_id, pending_transaction_id, name, merchant_name,
-                amount_cents, iso_currency_code, date, authorized_date, pending, category, payment_channel)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                amount_cents, iso_currency_code, date, authorized_date, pending, category, payment_channel, category_detailed)
+             values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
              on conflict (plaid_transaction_id) do update set financial_account_id = excluded.financial_account_id,
                pending_transaction_id = excluded.pending_transaction_id, name = excluded.name, merchant_name = excluded.merchant_name,
                amount_cents = excluded.amount_cents, iso_currency_code = excluded.iso_currency_code, date = excluded.date,
                authorized_date = excluded.authorized_date, pending = excluded.pending, category = excluded.category,
-               payment_channel = excluded.payment_channel`,
+               payment_channel = excluded.payment_channel, category_detailed = excluded.category_detailed`,
             [item.user_id, accountId, t.transactionId, t.pendingTransactionId, t.name, t.merchantName, decimalToCents(t.amount),
-              t.isoCurrencyCode, t.date, t.authorizedDate, t.pending, t.category, t.paymentChannel],
+              t.isoCurrencyCode, t.date, t.authorizedDate, t.pending, t.category, t.paymentChannel, t.categoryDetailed],
           );
         }
         if (removed.length) {

@@ -59,7 +59,7 @@ Agree these before building against them; every workstream uses fake data that m
   module means a new EAS build, so batch native dependency changes.
 - `ios/` and `android/` are generated (Continuous Native Generation) and gitignored. Configure
   native behavior through `app.json` / `app.config.ts` and config plugins, not by editing them.
-- Tabs: Home, Spending, Assistant, Cards. The routing result must appear on any tab when a new
+- Tabs: Home, Dashboard, Cards (the Assistant was removed). The routing result must appear on any tab when a new
   transaction arrives via Supabase Realtime, with a haptic, and refetch on reconnect.
 - Visual system comes from Gui's design system (achromatic, dark-first, JetBrains Mono). The store
   page uses the same tokens so both screens read as one product.

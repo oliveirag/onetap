@@ -84,11 +84,27 @@ describe('OneTap setup: connect cards from Plaid', () => {
   });
 });
 
-describe('OneTap setup: link the physical card', () => {
-  it('waits for the NFC card to be tapped and returns only its last four', async () => {
+describe('OneTap card: digital first, physical attached', () => {
+  it('creates the digital card at once and keeps returning the same one', async () => {
+    const h = await createHarness();
+    const user = await createUser(h.db);
+    const res = await h.http().post('/api/v1/onetap/card').set(user.auth).send({});
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.data).toEqual({ id: expect.any(String), last4: expect.stringMatching(/^[0-9A-Z]{4}$/), state: 'open', physical_linked: false });
+    const [again, parallel] = await Promise.all([
+      h.http().post('/api/v1/onetap/card').set(user.auth).send({}),
+      h.http().post('/api/v1/onetap/card').set(user.auth).send({}),
+    ]);
+    expect(again.body.data).toEqual(res.body.data);
+    expect(parallel.body.data).toEqual(res.body.data);
+    expect((await h.db.query('select 1 from reclaimed_cards where user_id = $1', [user.id])).rowCount).toBe(1);
+  });
+
+  it('attaches the tapped physical card to the same OneTap card', async () => {
     const h = await createHarness({ env: { ONETAP_ENROLL_WAIT_MS: '5000' } });
     const user = await createUser(h.db);
-    const pending = h.http().post('/api/v1/onetap/card').set(user.auth).send({}).then((r) => r);
+    const digital = (await h.http().post('/api/v1/onetap/card').set(user.auth).send({})).body.data;
+    const pending = h.http().post('/api/v1/onetap/card/physical').set(user.auth).send({}).then((r) => r);
     let enrolled = { body: { data: { outcome: '' } } };
     for (let i = 0; i < 40 && enrolled.body.data?.outcome !== 'ENROLLED'; i++) {
       await new Promise((r) => setTimeout(r, 100));
@@ -97,12 +113,18 @@ describe('OneTap setup: link the physical card', () => {
     expect(enrolled.body.data.outcome).toBe('ENROLLED');
     const res = await pending;
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.data).toMatchObject({ state: 'open', last4: expect.stringMatching(/^[0-9A-Z]{4}$/) });
-    expect(Object.keys(res.body.data).sort()).toEqual(['id', 'last4', 'state']);
+    expect(res.body.data).toEqual({ ...digital, physical_linked: true });
+    expect((await h.db.query('select 1 from reclaimed_cards where user_id = $1', [user.id])).rowCount).toBe(1);
 
-    // Already linked: answers at once.
-    const again = await h.http().post('/api/v1/onetap/card').set(user.auth).send({});
-    expect(again.body.data).toEqual(res.body.data);
+    // Linked: answers at once.
+    expect((await h.http().post('/api/v1/onetap/card/physical').set(user.auth).send({})).body.data).toEqual(res.body.data);
+  });
+
+  it('also attaches a card enrolled through the operator/test enrollment', async () => {
+    const h = await createHarness();
+    const user = await createUser(h.db);
+    const digital = (await h.http().post('/api/v1/onetap/card').set(user.auth).send({})).body.data;
+    expect(await enrollCard(h, user, UID)).toBe(digital.id);
   });
 
   it('reports a paused card after it is frozen', async () => {
@@ -110,13 +132,13 @@ describe('OneTap setup: link the physical card', () => {
     const user = await createUser(h.db);
     const cardId = await enrollCard(h, user, UID);
     await h.http().patch(`/api/v1/reclaimed-cards/${cardId}/status`).set(user.auth).send({ status: 'FROZEN' });
-    expect((await h.http().post('/api/v1/onetap/card').set(user.auth).send({})).body.data).toMatchObject({ id: cardId, state: 'paused' });
+    expect((await h.http().post('/api/v1/onetap/card').set(user.auth).send({})).body.data).toMatchObject({ id: cardId, state: 'paused', physical_linked: true });
   });
 
   it('times out with a clear, retryable error when no card is tapped', async () => {
     const h = await createHarness({ env: { ONETAP_ENROLL_WAIT_MS: '1000' } });
     const user = await createUser(h.db);
-    const res = await h.http().post('/api/v1/onetap/card').set(user.auth).send({});
+    const res = await h.http().post('/api/v1/onetap/card/physical').set(user.auth).send({});
     expect(res.status).toBe(409);
     expect(res.body.error).toMatchObject({ code: 'NFC_ENROLLMENT_TIMEOUT', retryable: true });
     const open = await h.db.query(`select 1 from nfc_enrollments where user_id = $1 and status = 'PENDING'`, [user.id]);

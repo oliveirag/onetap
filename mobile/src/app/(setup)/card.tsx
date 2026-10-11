@@ -2,7 +2,6 @@ import { View } from 'react-native';
 
 import { FlowScreen } from '@/components/onboarding/FlowScreen';
 import { FormError } from '@/components/onboarding/FormError';
-import { Hint } from '@/components/onboarding/Hint';
 import { OneTapCard } from '@/components/onetap/OneTapCard';
 import { Button } from '@/components/ui/Button';
 import { Enter } from '@/components/ui/Enter';
@@ -47,8 +46,6 @@ export default function Card() {
       footer={
         <>
           <FormError text={create.error ? (apiMessage(create.error) ?? "Your card wasn't created. Check your connection and try again.") : null} />
-          {/* Linking waits for the physical card to be tapped on the store reader. */}
-          <Hint text={create.isPending ? 'Hold your OneTap card on the reader.' : null} />
           {card ? (
             // Writing 'done' flips the root gate: setup unmounts and Home appears.
             <Button label="Go to home" onPress={() => setStep('done')} />

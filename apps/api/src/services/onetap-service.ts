@@ -1,4 +1,5 @@
 import type { Database } from '@reclaimed/database';
+import { newCardDisplayId } from '@reclaimed/payment-core';
 import { ReclaimedError } from '@reclaimed/shared';
 import type { Logger } from '../logger.js';
 import type { CardsService } from './cards-service.js';
@@ -9,6 +10,8 @@ export interface OneTapCardDto {
   id: string;
   last4: string;
   state: 'open' | 'paused';
+  /** The physical NFC card is attached to this OneTap card. */
+  physical_linked: boolean;
 }
 
 export interface ConnectCardsDto {
@@ -97,24 +100,41 @@ export class OneTapService {
   }
 
   /**
-   * Returns the user's OneTap card. With none yet, opens an enrollment session and waits for the
-   * physical NFC card to be tapped on the reader (the hardware bridge reports the tap).
+   * The user's OneTap card: one card, digital and physical. Created digital right away (no tap);
+   * the physical NFC card is attached to it later (linkPhysical, or the operator script).
    */
   async card(userId: string): Promise<OneTapCardDto> {
     const current = await this.currentCard(userId);
     if (current) return current;
+    const { rows } = await this.db.query<CardRow>(
+      `insert into reclaimed_cards (user_id, display_id, nickname, status)
+       values ($1, $2, 'OneTap', 'ACTIVE')
+       on conflict do nothing
+       returning id, display_id, status, uid_masked`,
+      [userId, newCardDisplayId()],
+    );
+    // A concurrent request created it first (one live digital card per user): return that one.
+    const created = rows[0] ? toOneTapCardDto(rows[0]) : await this.currentCard(userId);
+    this.deps.logger.info({ userId }, 'onetap digital card created');
+    return created!;
+  }
+
+  /**
+   * Attaches the physical NFC card to the user's OneTap card: opens an enrollment session and waits
+   * for the card to be tapped on the reader (the hardware bridge reports the tap).
+   */
+  async linkPhysical(userId: string): Promise<OneTapCardDto> {
+    const card = await this.card(userId);
+    if (card.physical_linked) return card;
     if (!this.opts.enrollmentEnabled) {
-      throw new ReclaimedError('FEATURE_DISABLED', 'Linking a card is development-only. Set HARDWARE_TEST_MODE=true on the API.');
+      throw new ReclaimedError('FEATURE_DISABLED', 'Linking a physical card is development-only. Set HARDWARE_TEST_MODE=true on the API.');
     }
     const enrollment = await this.deps.hardware.startEnrollment(userId, { nickname: 'OneTap' });
     const deadline = Date.now() + this.opts.enrollmentWaitMs;
     while (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, this.opts.pollMs ?? 250));
       const e = await this.deps.hardware.getEnrollment(userId, enrollment.id);
-      if (e.status === 'COMPLETED') {
-        const card = await this.currentCard(userId);
-        if (card) return card;
-      }
+      if (e.status === 'COMPLETED') return (await this.currentCard(userId)) ?? card;
       if (e.status === 'FAILED') {
         throw e.failureReason === 'CARD_ALREADY_ENROLLED'
           ? new ReclaimedError('NFC_CARD_ALREADY_ENROLLED', 'That card is linked to another account. Tap a different card.')
@@ -126,10 +146,12 @@ export class OneTapService {
     throw new ReclaimedError('NFC_ENROLLMENT_TIMEOUT');
   }
 
+  /** Prefers the card that has the physical card attached, then the newest. */
   private async currentCard(userId: string): Promise<OneTapCardDto | null> {
-    const { rows } = await this.db.query<{ id: string; display_id: string; status: string }>(
-      `select id, display_id, status from reclaimed_cards
-        where user_id = $1 and status in ('ACTIVE', 'FROZEN') order by created_at desc limit 1`,
+    const { rows } = await this.db.query<CardRow>(
+      `select id, display_id, status, uid_masked from reclaimed_cards
+        where user_id = $1 and status in ('ACTIVE', 'FROZEN')
+        order by (uid_fingerprint is not null) desc, created_at desc limit 1`,
       [userId],
     );
     const r = rows[0];
@@ -151,7 +173,14 @@ export class OneTapService {
 
 const validLast4 = (mask: string | null) => (mask && /^\d{4}$/.test(mask) ? mask : null);
 
+type CardRow = { id: string; display_id: string; status: string; uid_masked: string | null };
+
 /** Display IDs look like RC-7F3A-19C2; the app shows the last four characters. */
-export function toOneTapCardDto(r: { id: string; display_id: string; status: string }): OneTapCardDto {
-  return { id: r.id, last4: r.display_id.replace(/[^0-9A-Z]/gi, '').slice(-4), state: r.status === 'FROZEN' ? 'paused' : 'open' };
+export function toOneTapCardDto(r: CardRow): OneTapCardDto {
+  return {
+    id: r.id,
+    last4: r.display_id.replace(/[^0-9A-Z]/gi, '').slice(-4),
+    state: r.status === 'FROZEN' ? 'paused' : 'open',
+    physical_linked: r.uid_masked != null,
+  };
 }

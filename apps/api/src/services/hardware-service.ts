@@ -193,13 +193,25 @@ export class HardwareService {
           const tapRowId = await insert('ENROLLMENT_REJECTED', { enrollmentId: enrollment.id });
           return { kind: 'enrollment' as const, tapRowId, enrollmentId: enrollment.id, userId: enrollment.user_id, outcome: 'ENROLLMENT_REJECTED' as const, reader };
         }
-        const newCard = (
+        // The physical card joins the user's digital OneTap card when there is one; otherwise it is a new card.
+        const attached = (
           await tx.query<{ id: string }>(
-            `insert into reclaimed_cards (user_id, display_id, nickname, status, uid_fingerprint, uid_masked, card_technology, atr, enrolled_at)
-             values ($1, $2, $3, 'ACTIVE', $4, $5, $6, $7, now()) returning id`,
-            [enrollment.user_id, newCardDisplayId(), enrollment.nickname, fingerprint, masked, tap.cardType ?? null, tap.atr ?? null],
+            `update reclaimed_cards set uid_fingerprint = $2, uid_masked = $3, card_technology = $4, atr = $5, enrolled_at = now()
+              where id = (select id from reclaimed_cards where user_id = $1 and uid_fingerprint is null and status in ('ACTIVE', 'FROZEN')
+                           order by created_at desc limit 1)
+              returning id`,
+            [enrollment.user_id, fingerprint, masked, tap.cardType ?? null, tap.atr ?? null],
           )
-        ).rows[0]!;
+        ).rows[0];
+        const newCard =
+          attached ??
+          (
+            await tx.query<{ id: string }>(
+              `insert into reclaimed_cards (user_id, display_id, nickname, status, uid_fingerprint, uid_masked, card_technology, atr, enrolled_at)
+               values ($1, $2, $3, 'ACTIVE', $4, $5, $6, $7, now()) returning id`,
+              [enrollment.user_id, newCardDisplayId(), enrollment.nickname, fingerprint, masked, tap.cardType ?? null, tap.atr ?? null],
+            )
+          ).rows[0]!;
         await tx.query(
           `update nfc_enrollments set status = 'COMPLETED', reclaimed_card_id = $2, completed_at = now(), reader_id = $3 where id = $1`,
           [enrollment.id, newCard.id, reader.id],

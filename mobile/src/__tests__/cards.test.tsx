@@ -75,3 +75,15 @@ it('offers Plaid to connect cards when none are connected, and to add another ba
   await screen.findAllByTestId('card-row');
   expect(screen.getByRole('button', { name: 'Connect another bank' })).toBeTruthy();
 });
+
+it('shows the OneTap card standing in for the connected cards and links the physical card', async () => {
+  renderCards();
+  expect(await screen.findByText('Your OneTap card')).toBeTruthy();
+  expect(await screen.findByText(/Stands in for your 4 connected cards/)).toBeTruthy();
+  expect(await screen.findByText('Digital card ready. The physical card is not linked yet.')).toBeTruthy();
+
+  fireEvent.press(screen.getByRole('button', { name: 'Link physical card' }));
+  expect(await screen.findByText('Hold your physical OneTap card on the reader.')).toBeTruthy();
+  expect(await screen.findByText('Digital and physical card linked.', {}, { timeout: 3000 })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Link physical card' })).toBeNull();
+});

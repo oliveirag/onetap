@@ -166,8 +166,10 @@ export function userRoutes(ctx: AppContext): Router {
   // ---------- OneTap app setup (mobile/src/lib/api.ts) ----------
   // After Plaid Link + /plaid/exchange-token: one routable card per connected credit account.
   r.post('/onetap/connect-cards', async (req, res) => ok(res, await s.onetap.connectCards(uid(req))));
-  // Waits up to ONETAP_ENROLL_WAIT_MS for the NFC card to be tapped when the user has none yet.
+  // The OneTap card: created digital at once; the physical card attaches with a tap.
   r.post('/onetap/card', async (req, res) => ok(res, await s.onetap.card(uid(req))));
+  // Waits up to ONETAP_ENROLL_WAIT_MS for the physical NFC card to be tapped on the reader.
+  r.post('/onetap/card/physical', async (req, res) => ok(res, await s.onetap.linkPhysical(uid(req))));
 
   // ---------- Dashboard & dev hardware view ----------
   r.get('/dashboard/summary', async (req, res) => ok(res, await s.dashboard.summary(uid(req))));

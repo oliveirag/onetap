@@ -27,7 +27,10 @@ export interface PlaidTransaction {
   date: string;
   authorizedDate: string | null;
   pending: boolean;
+  /** personal_finance_category.primary, e.g. FOOD_AND_DRINK */
   category: string | null;
+  /** personal_finance_category.detailed, e.g. FOOD_AND_DRINK_GROCERIES */
+  categoryDetailed: string | null;
   paymentChannel: string | null;
 }
 

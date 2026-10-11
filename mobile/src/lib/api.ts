@@ -1,11 +1,10 @@
 import { live } from './backend';
-import { mockChat } from './mocks/chat';
 import { mockStore } from './mocks/store';
 import { LinkFailed, openPlaidLink } from './plaid';
 import { Platform } from 'react-native';
 
 import { supabase, USE_MOCKS } from './supabase';
-import type { ChatRequest, ChatResponse, OneTapCardRow, UserCardRow } from './types';
+import type { OneTapCardRow, UserCardRow } from './types';
 
 const later = <T>(ms: number, f: () => T) => new Promise<T>((resolve) => setTimeout(() => resolve(f()), ms));
 
@@ -46,8 +45,6 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export const apiMessage = (e: unknown) => (e instanceof ApiError || e instanceof LinkFailed ? e.message : null);
 
 export const api = {
-  // Shared contract 4. Every number in the reply is computed by our backend; Claude only explains it.
-  chat: (req: ChatRequest): Promise<ChatResponse> => (USE_MOCKS ? mockChat(req) : post<ChatResponse>('/chat', req)),
   // PRD F2: Plaid Link -> the backend exchanges the token and imports the accounts -> each credit
   // account becomes a routable card. Throws LinkCanceled if the user closes Link.
   connectCards: async (): Promise<UserCardRow[]> => {
@@ -58,6 +55,9 @@ export const api = {
     await post<{ cardIds: string[] }>('/onetap/connect-cards', {});
     return live.userCards();
   },
-  // Links the physical OneTap card: the backend waits for it to be tapped on the store reader.
+  // The OneTap card: the backend creates it digital at once.
   createOneTapCard: (): Promise<OneTapCardRow> => (USE_MOCKS ? later(900, () => mockStore.oneTapCard()) : post<OneTapCardRow>('/onetap/card', {})),
+  // Attaches the physical card to it: the backend waits for the card to be tapped on the reader.
+  linkPhysicalCard: (): Promise<OneTapCardRow> =>
+    USE_MOCKS ? later(900, () => mockStore.linkPhysicalCard()) : post<OneTapCardRow>('/onetap/card/physical', {}),
 };

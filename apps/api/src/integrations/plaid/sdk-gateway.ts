@@ -20,6 +20,7 @@ const mapTxn = (t: Transaction): PlaidTransaction => ({
   authorizedDate: t.authorized_date ?? null,
   pending: t.pending,
   category: t.personal_finance_category?.primary ?? null,
+  categoryDetailed: t.personal_finance_category?.detailed ?? null,
   paymentChannel: t.payment_channel ?? null,
 });
 

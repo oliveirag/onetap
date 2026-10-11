@@ -1,16 +1,39 @@
 import { asCardProduct, catalogRates, matchProduct, productById } from '../catalog';
-import type { ProfileRow, TransactionRow, UserCardRow } from '../types';
+import type { CardSpendingRow, OneTapCardRow, ProfileRow, TransactionRow, UserCardRow } from '../types';
 import { mockCards, mockProfile, mockRates, mockOneTapCard, seedTransactions } from './fixtures';
 
 // In-memory stand-in for the user's Supabase rows. Lives for the app session.
 let profile: ProfileRow = { ...mockProfile };
 const cards: UserCardRow[] = mockCards.map((c) => ({ ...c }));
 let transactions: TransactionRow[] = seedTransactions(new Date());
+let oneTap: OneTapCardRow = { ...mockOneTapCard };
 
 export const mockStore = {
   profile: () => ({ ...profile }),
   cards: () => cards.map((c) => ({ ...c })),
-  oneTapCard: () => ({ ...mockOneTapCard }),
+  oneTapCard: () => ({ ...oneTap }),
+  linkPhysicalCard() {
+    oneTap = { ...oneTap, physical_linked: true };
+    return { ...oneTap };
+  },
+  // Stand-in for card_spending: the seeded purchases, as the connected cards would report them.
+  cardSpending: (): CardSpendingRow[] =>
+    transactions
+      .filter((t) => t.status === 'approved')
+      .map((t) => {
+        const card = cards.find((c) => c.id === t.routed_card_id);
+        return {
+          id: t.id,
+          financial_account_id: t.routed_card_id,
+          account_name: card?.account_name ?? 'Card',
+          mask: card?.mask ?? null,
+          merchant: t.merchant_name,
+          amount_cents: t.amount_cents,
+          date: t.created_at.slice(0, 10),
+          pending: false,
+          category_id: t.category_id,
+        };
+      }),
   // Fixture products plus the catalog, so a card re-matched in onboarding still has rates.
   rates: () => [...mockRates, ...catalogRates].map((r) => ({ ...r })),
   transactions: () => [...transactions],

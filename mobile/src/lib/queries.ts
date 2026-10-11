@@ -24,6 +24,7 @@ export const keys = {
   oneTapCard: ['onetap-card'] as const,
   rates: ['card-rates'] as const,
   transactions: ['transactions'] as const,
+  cardSpending: ['card-spending'] as const,
   transaction: (id: string) => ['transaction', id] as const,
 };
 
@@ -174,6 +175,22 @@ export function useSetCardProduct() {
       return live.setCardProduct(cardId, productId);
     },
     onSuccess: (card) => qc.setQueryData<UserCardRow[]>(keys.cards, (old = []) => old.map((c) => (c.id === card.id ? card : c))),
+  });
+}
+
+// Purchases this month on every card connected through Plaid (the Dashboard).
+export function useCardSpending() {
+  return useQuery({
+    queryKey: keys.cardSpending,
+    queryFn: () => (USE_MOCKS ? mockStore.cardSpending() : live.cardSpending()),
+  });
+}
+
+export function useLinkPhysicalCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.linkPhysicalCard,
+    onSuccess: (card) => qc.setQueryData(keys.oneTapCard, card),
   });
 }
 

@@ -99,6 +99,7 @@ export function txn(id: string, accountId: string, overrides: Partial<PlaidTrans
     authorizedDate: null,
     pending: false,
     category: 'FOOD_AND_DRINK',
+    categoryDetailed: 'FOOD_AND_DRINK_COFFEE',
     paymentChannel: 'in store',
     ...overrides,
   };

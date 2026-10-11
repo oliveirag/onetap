@@ -121,7 +121,8 @@ export interface ReclaimedCardDto {
   displayId: string;
   nickname: string | null;
   status: ReclaimedCardStatus;
-  uidMasked: string;
+  /** Null while the OneTap card is digital only (no physical NFC card attached yet). */
+  uidMasked: string | null;
   cardTechnology: string | null;
   primaryFundingAccountId: string | null;
   secondaryFundingAccountId: string | null;

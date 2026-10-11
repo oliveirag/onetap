@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import Spending from '@/app/(tabs)/spending';
+import Dashboard from '@/app/(tabs)/spending';
+import { summarizeCards } from '@/lib/dashboard';
 import { mockStore } from '@/lib/mocks/store';
 import { aggregate } from '@/lib/spending';
 import { formatCents } from '@/lib/money';
@@ -12,23 +13,32 @@ function renderSpending() {
   return render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <Spending />
+        <Dashboard />
       </ThemeProvider>
     </QueryClientProvider>,
   );
 }
 
-it('shows the month total, rewards and the demo-history label', async () => {
-  const expected = aggregate(mockStore.transactions(), mockStore.cards());
+it('shows the month total across connected cards, OneTap rewards and the sandbox label', async () => {
+  const cards = summarizeCards(mockStore.cardSpending());
+  const onetap = aggregate(mockStore.transactions(), mockStore.cards());
   renderSpending();
   // Totals roll digit by digit, so each is one accessible element read by its label.
-  expect(await screen.findByLabelText(formatCents(expected.totalSpendCents))).toBeTruthy();
-  expect(screen.getByLabelText(`plus ${formatCents(expected.rewardsCents)}`)).toBeTruthy();
-  expect(screen.getByText('Includes demo history')).toBeTruthy();
+  expect(await screen.findByLabelText(formatCents(cards.totalSpendCents))).toBeTruthy();
+  expect(screen.getByText(`${cards.purchases} purchases on ${cards.cardCount} cards`)).toBeTruthy();
+  expect(screen.getByLabelText(`plus ${formatCents(onetap.rewardsCents)}`)).toBeTruthy();
+  expect(screen.getByText('Plaid sandbox transactions')).toBeTruthy();
+});
+
+it('lists the most recent purchases with their card', async () => {
+  const [latest] = summarizeCards(mockStore.cardSpending()).recent;
+  renderSpending();
+  expect(await screen.findByText('Recent purchases')).toBeTruthy();
+  expect(screen.getAllByLabelText(`${latest.merchant}, ${latest.account_name}, ${latest.date}`).length).toBeGreaterThan(0);
 });
 
 it('lists categories largest first, each with its value as text', async () => {
-  const expected = aggregate(mockStore.transactions(), mockStore.cards());
+  const expected = summarizeCards(mockStore.cardSpending());
   renderSpending();
   const top = expected.byCategory[0];
   expect(await screen.findByLabelText(new RegExp(`^${top.label}, ${formatCents(top.cents).replace('$', '\\$')}`))).toBeTruthy();
@@ -37,11 +47,11 @@ it('lists categories largest first, each with its value as text', async () => {
 it('lists spend by card', async () => {
   renderSpending();
   expect(await screen.findByText('By card')).toBeTruthy();
-  expect(screen.getAllByText(/Amex Gold|Sapphire Preferred|Custom Cash|Active Cash/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/American Express Gold Card|Chase Sapphire Preferred|Citi Custom Cash Card|Wells Fargo Active Cash Card/).length).toBeGreaterThan(0);
 });
 
 it('starts on the largest category and moves the selection when another row is tapped', async () => {
-  const expected = aggregate(mockStore.transactions(), mockStore.cards());
+  const expected = summarizeCards(mockStore.cardSpending());
   const [top, second] = expected.byCategory;
   const row = (c: { label: string; cents: number }) => new RegExp(`^${c.label}, ${formatCents(c.cents).replace('$', '\\$')}`);
   renderSpending();

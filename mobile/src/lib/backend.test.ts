@@ -1,4 +1,4 @@
-import { appProductId, isRouted, productSlug, toOneTapCard, toProfile, toProfilePatch, toTransaction, toUserCard, type DbFundingAccount, type DbPayment } from './backend';
+import { appProductId, isRouted, monthStart, productSlug, toCardSpending, toOneTapCard, toProfile, toProfilePatch, toTransaction, toUserCard, type DbFundingAccount, type DbPayment } from './backend';
 
 const goldProduct = {
   product_slug: 'amex-gold',
@@ -129,9 +129,17 @@ describe('backend row mapping', () => {
     expect(isRouted(payment({ decision_reason: null }))).toBe(false);
   });
 
-  it('shows only the last four of the OneTap card and maps frozen to paused', () => {
-    expect(toOneTapCard({ id: 'rc-1', display_id: 'RC-7F3A-19C2', status: 'ACTIVE' })).toEqual({ id: 'rc-1', last4: '19C2', state: 'open' });
-    expect(toOneTapCard({ id: 'rc-1', display_id: 'RC-7F3A-19C2', status: 'FROZEN' }).state).toBe('paused');
+  it('shows only the last four of the OneTap card, maps frozen to paused and reports the physical card', () => {
+    expect(toOneTapCard({ id: 'rc-1', display_id: 'RC-7F3A-19C2', status: 'ACTIVE', uid_masked: null })).toEqual({ id: 'rc-1', last4: '19C2', state: 'open', physical_linked: false });
+    const linked = toOneTapCard({ id: 'rc-1', display_id: 'RC-7F3A-19C2', status: 'FROZEN', uid_masked: '••••A1B2' });
+    expect(linked).toMatchObject({ state: 'paused', physical_linked: true });
+  });
+
+  it('maps card spending rows with numeric cents and computes the month start', () => {
+    const row = { id: 't1', financial_account_id: 'fa-1', account_name: 'Gold Card', mask: '1008', merchant: 'Starbucks', amount_cents: '450', date: '2026-10-09', pending: false, category_id: 'dining' as const };
+    expect(toCardSpending(row).amount_cents).toBe(450);
+    expect(monthStart(new Date(2026, 9, 10))).toBe('2026-10-01');
+    expect(monthStart(new Date(2026, 0, 31))).toBe('2026-01-01');
   });
 
   it('maps profiles and writes only the columns the app may change', () => {

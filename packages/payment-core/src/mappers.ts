@@ -189,8 +189,8 @@ export interface ReclaimedCardRow {
   display_id: string;
   nickname: string | null;
   status: ReclaimedCardDto['status'];
-  uid_fingerprint: string;
-  uid_masked: string;
+  uid_fingerprint: string | null;
+  uid_masked: string | null;
   card_technology: string | null;
   primary_funding_account_id: string | null;
   secondary_funding_account_id: string | null;

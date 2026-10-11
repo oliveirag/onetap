@@ -10,7 +10,8 @@ The app in `mobile/` keeps its own row types (`shared/contracts.ts`) and design.
 | `CardProduct` | `card_products` | Catalog display names from `mobile/src/lib/catalog.ts`; `cp-other` = `other-card` (generic, 1x) |
 | `CardProductRate` | `card_product_rates` | Demo estimates, the same numbers as `catalog.ts` (seeded in `seed.sql`) |
 | `ProfileRow` | `profiles` | `display_name` = `full_name`. `routing_mode`, `manual_card_id`, `default_card_id` added by `20261010200100_app_preferences.sql`. Setup progress stays in auth metadata |
-| `OneTapCardRow` | `reclaimed_cards` (`ACTIVE`/`FROZEN`) | `last4` = last four characters of `display_id`; `FROZEN` = `paused` |
+| `OneTapCardRow` | `reclaimed_cards` (`ACTIVE`/`FROZEN`) | The OneTap card, digital and physical. `last4` = last four characters of `display_id`; `FROZEN` = `paused`; `physical_linked` = an NFC card is attached (`uid_masked` set) |
+| `CardSpendingRow` (Dashboard) | `card_spending` view | Purchases on Plaid-connected credit cards in OneTap categories (`plaid_category_map`: Plaid detailed category first, then primary, else `general`). Payments, refunds and transfers excluded. `security_invoker`, so RLS applies |
 | `TransactionRow` | `payment_transactions` with `decision_reason` set | Routing columns from `20261010200000_payment_routing.sql`. `routed_card_id` = `funding_account_id`. Declines before routing (frozen card, limits) are not shown |
 
 The app talks to Supabase directly with the user's JWT. RLS lets it read only its own rows, and column grants let it write only `profiles.{full_name, routing_mode, manual_card_id, default_card_id}` and `mock_funding_accounts.{priority, card_product_id, match_source}` on its own rows. A trigger rejects pointing a profile at another user's card.
@@ -22,8 +23,12 @@ All are under `/api/v1`, need the user's Supabase token, and return the `{ succe
 | App call | Endpoint | Behavior |
 |---|---|---|
 | `api.connectCards()` (setup step 1) | `POST /plaid/link-token` → Plaid Link → `POST /plaid/exchange-token` → `POST /onetap/connect-cards` | The user signs in to their bank in **Plaid Link**. The backend imports the accounts, then creates one routable card per **credit** account. The name, last four, balance and limit all come from Plaid, and each card is linked to its Plaid account (`mock_funding_accounts.financial_account_id`), so reconnecting refreshes it instead of duplicating it. No connected credit card: `NO_CREDIT_CARDS_CONNECTED`. Nothing is invented when Plaid isn't configured |
-| `api.createOneTapCard()` (setup step 4) | `POST /onetap/card` | Returns the user's card, or opens an enrollment session and **waits up to `ONETAP_ENROLL_WAIT_MS` (45 s) for the NFC card to be tapped** on the reader. The screen shows "Hold your OneTap card on the reader." Development or `HARDWARE_TEST_MODE=true` only |
-| `api.chat()` (Assistant) | `POST /chat` | **Not implemented on the backend yet.** The Assistant tab shows its error state in live mode |
+| `api.createOneTapCard()` (setup step 4, Cards tab) | `POST /onetap/card` | Returns the user's OneTap card, creating it **digital** on the spot (no tap). Idempotent, at most one live digital card per user |
+| `api.linkPhysicalCard()` (Cards tab) | `POST /onetap/card/physical` | Attaches the physical NFC card to that same card: opens an enrollment session and **waits up to `ONETAP_ENROLL_WAIT_MS` (45 s) for the tap**. Development or `HARDWARE_TEST_MODE=true` only. For demos, an operator can do the same with `npm run onetap:link-card -- <email>` |
+
+## Tabs
+
+Home, **Dashboard** (this month's spending across every Plaid-connected card, by category and by card, recent purchases, and the rewards OneTap earned) and Cards (the OneTap card with its digital/physical status and **Link physical card**, connected cards, routing rules, card order, **Connect cards**). The Assistant tab was removed.
 
 ## Routing
 

@@ -110,3 +110,19 @@ values
   ('5310', 'general', 'Discount stores'),
   ('5912', 'general', 'Drug stores')
 on conflict (mcc) do update set category_id = excluded.category_id, description = excluded.description;
+
+-- Plaid personal_finance_category -> category, for spending across connected cards (card_spending).
+-- Detailed codes win over primary ones; anything unlisted is 'general'.
+insert into public.plaid_category_map (plaid_category, category_id)
+values
+  ('FOOD_AND_DRINK', 'dining'),
+  ('FOOD_AND_DRINK_GROCERIES', 'groceries'),
+  ('FOOD_AND_DRINK_BEER_WINE_AND_LIQUOR', 'groceries'),
+  ('TRANSPORTATION_GAS', 'gas'),
+  ('TRANSPORTATION_TAXIS_AND_RIDE_SHARES', 'travel'),
+  ('TRANSPORTATION_PUBLIC_TRANSIT', 'travel'),
+  ('TRAVEL', 'travel'),
+  ('ENTERTAINMENT_TV_AND_MOVIES', 'streaming'),
+  ('ENTERTAINMENT_MUSIC_AND_AUDIO', 'streaming'),
+  ('ENTERTAINMENT_VIDEO_GAMES', 'streaming')
+on conflict (plaid_category) do update set category_id = excluded.category_id;
