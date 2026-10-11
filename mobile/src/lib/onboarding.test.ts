@@ -26,8 +26,16 @@ it('gives a tie to the card listed first', () => {
   expect(plan.totalCents).toBe(plan.oneCardCents);
 });
 
-it('prices three purchases on the example wallet even with no answers', () => {
+it('routes between the cards they carry, in the order picked', () => {
+  const plan = buildPlan({ ...emptyAnswers, wallet: ['cp-citi-custom-cash', 'cp-amex-gold'], spend: ['gas'] });
+  expect(plan.sample).toBe(false);
+  expect(plan.purchases.map((p) => p.cardName)).toEqual(['Custom Cash', 'Amex Gold', 'Amex Gold']);
+  expect(plan.rules.find((r) => r.category === 'general')?.cardName).toBe('Custom Cash'); // 1x tie: picked first
+});
+
+it('falls back to a labeled sample wallet when no cards were picked', () => {
   const plan = buildPlan(emptyAnswers);
+  expect(plan.sample).toBe(true);
   expect(plan.purchases).toHaveLength(3);
   expect(new Set(plan.purchases.map((p) => p.cardId)).size).toBeGreaterThan(1);
   expect(SAMPLE_WALLET).toContain(plan.purchases[0].cardId);

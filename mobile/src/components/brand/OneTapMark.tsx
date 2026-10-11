@@ -16,7 +16,7 @@ export function OneTapMark({ height = 18, bars = brand.white, route = brand.rout
 }
 
 // Mark + "One Tap" set in Geist SemiBold with the design's tight tracking. Logo art, not UI text,
-// so it is the one place outside JetBrains Mono.
+// so it is the one place that uses SemiBold.
 export function OneTapLockup({ size = 24, color = brand.white }: { size?: number; color?: string }) {
   return (
     <View accessible accessibilityRole="image" accessibilityLabel="One Tap" style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.44 }}>

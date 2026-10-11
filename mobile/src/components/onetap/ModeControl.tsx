@@ -51,17 +51,13 @@ export function ModeControl() {
           { value: 'manual', label: 'Manual' },
         ]}
       />
-      {mode === 'auto' ? (
-        <Text variant="body-sm" tone="secondary">
-          Each purchase goes to the card that earns the most.
-        </Text>
-      ) : chosen ? (
+      {mode === 'auto' ? null : chosen ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space.md, minHeight: theme.hitTarget }}>
           <CardArt art={chosen.card_product?.card_art ?? 'solid'} />
           <View style={{ flex: 1 }}>
             <Text>{chosen.card_product?.name ?? chosen.account_name}</Text>
             <Text variant="body-sm" tone="secondary">
-              Every purchase uses this card
+              Every purchase
             </Text>
           </View>
           {/* Ghost buttons have no visible box: pull out by their padding so the label sits on the page margin. */}

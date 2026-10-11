@@ -51,7 +51,6 @@ export default function Cards() {
   const setFrozen = useSetCardFrozen();
   const card = oneTap.data ?? createCard.data ?? null;
   const frozen = card?.state === 'paused';
-  const cardCount = cards.data?.length ?? 0;
   const cardError = createCard.error ?? linkPhysical.error ?? setFrozen.error;
   // The backend waits up to 45 s for the physical card on the reader (ONETAP_ENROLL_WAIT_MS).
   const left = useCountdown(linkPhysical.isPending, 45);
@@ -64,7 +63,7 @@ export default function Cards() {
     const name = card.card_product?.name ?? card.account_name;
     if (card.id === defaultId) {
       ActionSheetIOS.showActionSheetWithOptions(
-        { title: `${name} is your default card`, message: 'It is used when routing cannot decide, and it is the baseline for extra value.', options: ['Done'], cancelButtonIndex: 0 },
+        { title: `${name} is your default card`, message: 'Used when no card wins, and the baseline for Reclaimed.', options: ['Done'], cancelButtonIndex: 0 },
         () => {},
       );
       return;
@@ -103,15 +102,10 @@ export default function Cards() {
             physicalLinked={!!card?.physical_linked}
           />
         )}
-        <Text variant="body-sm" tone="secondary">
-          {cardCount
-            ? `Stands in for your ${cardCount} connected ${cardCount === 1 ? 'card' : 'cards'}: each purchase goes to the one that earns the most.`
-            : 'Connect your cards below so it can route each purchase.'}
-        </Text>
         {card ? (
           <Toggle
             label="Freeze card"
-            description={frozen ? 'Every tap is declined until you unfreeze it.' : 'Declines every tap at once, without cancelling the card.'}
+            description={frozen ? 'Every tap is declined.' : 'Decline every tap.'}
             value={frozen}
             onValueChange={(v) => setFrozen.mutate({ card, frozen: v })}
           />
@@ -124,7 +118,7 @@ export default function Cards() {
             variant="primary"
             confirmTone="primary"
             label="Create my card"
-            prompt="Create your OneTap card? It goes live right away as a digital card."
+            prompt="Create your card? It works right away."
             confirmLabel="Create card"
             pendingLabel="Creating your card"
             doneLabel="Card created"
@@ -137,7 +131,7 @@ export default function Cards() {
             variant="secondary"
             confirmTone="primary"
             label="Link physical card"
-            prompt="Have your physical OneTap card ready. After you confirm, tap it on the reader."
+            prompt="Confirm, then tap your card on the reader."
             confirmLabel="Start linking"
             pendingLabel={`Tap your card on the reader · ${formatClock(left)}`}
             doneLabel="Physical card linked"
@@ -161,7 +155,7 @@ export default function Cards() {
       ) : !cards.data?.length ? (
         <Empty
           title="No cards connected"
-          body="Connect your credit cards so OneTap can route each purchase."
+          body="Connect your credit cards to start routing."
           action={
             <View style={{ gap: theme.space.sm }}>
               <FormError text={connectError} />
@@ -175,11 +169,11 @@ export default function Cards() {
             <Text variant="h4" accessibilityRole="header">
               Routing rules
             </Text>
-            <Text variant="body-sm" tone="secondary">
-              {manualName
-                ? `Manual is on, so every purchase uses ${manualName}. These rules apply when you switch back to Auto.`
-                : 'Auto sends each purchase to the card that earns the most for its category.'}
-            </Text>
+            {manualName ? (
+              <Text variant="body-sm" tone="secondary">
+                {`Paused: Manual uses ${manualName}.`}
+              </Text>
+            ) : null}
             {rates.isLoading ? (
               <Skeleton height={6 * 56} radius={theme.radius.xl} />
             ) : rates.error ? (
@@ -194,7 +188,7 @@ export default function Cards() {
               Card order
             </Text>
             <Text variant="body-sm" tone="secondary">
-              Order breaks ties: when two cards earn the same, the one higher up wins. Hold a card and drag to reorder.
+              Higher card wins ties.
             </Text>
             <SortableCardList cards={cards.data} defaultId={defaultId} onReorder={(order) => reorder.mutate(order)} onPressCard={onPressCard} />
             <DemoLabel text="Point balances are demo estimates" />

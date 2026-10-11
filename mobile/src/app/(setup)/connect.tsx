@@ -32,7 +32,7 @@ export default function Connect() {
   return (
     <FlowScreen
       title={first ? `Welcome, ${first}. Connect your cards` : 'Connect your cards'}
-      subtitle="We read card names, balances and limits. We never move money."
+      subtitle="Read-only. We never move money."
       progress={setupProgress('connect')}
       back={false}
       footer={
@@ -70,7 +70,7 @@ export default function Connect() {
             >
               <CardArt art={c.card_product?.card_art ?? 'solid'} />
               <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ fontFamily: 'JBMono-Medium' }}>
+                <Text numberOfLines={1} style={{ fontFamily: theme.font.medium }}>
                   {c.account_name}
                 </Text>
                 <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>

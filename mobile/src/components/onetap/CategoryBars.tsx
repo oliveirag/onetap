@@ -44,7 +44,7 @@ export function CategoryBars({
                 variant="body-sm"
                 tone={onSelect && !selected ? 'secondary' : 'primary'}
                 numberOfLines={1}
-                style={{ flexShrink: 1, fontFamily: selected ? 'JBMono-Medium' : 'JBMono-Regular' }}
+                style={{ flexShrink: 1, fontFamily: selected ? theme.font.medium : theme.font.regular }}
               >
                 {r.label}
               </Text>

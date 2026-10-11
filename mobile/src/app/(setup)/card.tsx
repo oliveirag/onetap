@@ -17,12 +17,10 @@ import { backFrom, setupProgress } from '@/lib/setup';
 import { duration } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const perks = (manualName?: string): { icon: IconName; title: string; body: string }[] => [
-  { icon: 'tap', title: 'Tap it at the store', body: 'Use it at the terminal like any other card.' },
-  manualName
-    ? { icon: 'cards', title: `Always ${manualName}`, body: 'Every purchase goes to the card you picked. Switch to Auto from Home.' }
-    : { icon: 'auto', title: 'The best card, automatically', body: 'Each purchase goes to the card that earns the most.' },
-  { icon: 'chart', title: 'See every decision', body: 'Your phone shows where it went and why.' },
+const perks = (manualName?: string): { icon: IconName; title: string }[] => [
+  { icon: 'tap', title: 'Tap it at any store' },
+  manualName ? { icon: 'cards', title: `Always ${manualName}` } : { icon: 'auto', title: 'The best card, automatically' },
+  { icon: 'chart', title: 'See where every purchase went' },
 ];
 
 // Step 4 of 4, after Venmo's debit card screen: the card, three short promises, one action.
@@ -43,7 +41,7 @@ export default function Card() {
   return (
     <FlowScreen
       title={card ? 'Your OneTap card is ready' : 'Meet your OneTap card'}
-      subtitle={card ? 'Tap this card at the store. Your phone shows where the purchase went.' : 'One card that stands in for all of yours.'}
+      subtitle={card ? 'Tap it at any store.' : 'One card for all of yours.'}
       progress={setupProgress('card')}
       onBack={() => backFrom('card')}
       footer={
@@ -59,7 +57,7 @@ export default function Card() {
               variant="primary"
               confirmTone="primary"
               label="Create my card"
-              prompt="Create your OneTap card? It goes live right away as a digital card."
+              prompt="Create your card? It works right away."
               confirmLabel="Create card"
               pendingLabel="Creating your card"
               doneLabel="Card created"
@@ -91,7 +89,7 @@ export default function Card() {
               Every tap shows up here
             </Text>
             <Text tone="secondary" style={{ textAlign: 'center' }}>
-              Tap at the store and this phone buzzes with the receipt: the card it went to and what you earned.
+              The card it went to and what you earned.
             </Text>
           </View>
         </Enter>
@@ -113,12 +111,7 @@ export default function Card() {
                 >
                   <Icon name={p.icon} size={18} tone="on-action" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: 'JBMono-Medium' }}>{p.title}</Text>
-                  <Text variant="body-sm" tone="secondary">
-                    {p.body}
-                  </Text>
-                </View>
+                <Text style={{ flex: 1, fontFamily: theme.font.medium }}>{p.title}</Text>
               </View>
             ))}
           </View>

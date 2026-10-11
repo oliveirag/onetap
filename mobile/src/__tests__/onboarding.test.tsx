@@ -27,12 +27,21 @@ async function signUpThroughQuestionnaire(email: string, password: string) {
   fireEvent.press(screen.getByRole('checkbox', { name: "I can't remember which card earns what" }));
   press('Continue');
 
+  await screen.findByText('Which cards do you carry?');
+  fireEvent.press(screen.getByRole('checkbox', { name: 'Amex Gold, American Express' }));
+  fireEvent.press(screen.getByRole('checkbox', { name: 'Custom Cash, Citi' }));
+  press('Continue with 2 cards');
+
   await screen.findByText('Where do you spend the most?');
-  fireEvent.press(screen.getByRole('checkbox', { name: 'Dining' }));
+  fireEvent.press(screen.getByRole('checkbox', { name: 'Gas' }));
   press('Build my plan');
 
+  await screen.findByText("Reading your cards' bonus categories");
   await screen.findByText('Your OneTap plan', {}, { timeout: 5000 });
-  expect(screen.getByText(/OneTap knows every card you own/)).toBeTruthy();
+  expect(screen.getByText('We pick the best card at the register.')).toBeTruthy();
+  // Routed between the two cards they picked, compared with the better one alone.
+  expect(screen.getByText(/more than Amex Gold alone\./)).toBeTruthy();
+  expect(screen.getByText('Reward rates are estimates')).toBeTruthy();
   press('Save my plan');
 
   await screen.findByText('Tell us about you');

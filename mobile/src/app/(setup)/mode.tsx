@@ -60,11 +60,11 @@ export default function Mode() {
         <Choice
           icon="auto"
           label="Auto"
-          description="We pick the card that earns the most on each purchase."
+          description="The best card for each purchase."
           selected={mode === 'auto'}
           onPress={() => choose('auto')}
         />
-        <Choice icon="cards" label="Manual" description="One card for everything. You choose which." selected={mode === 'manual'} onPress={() => choose('manual')} />
+        <Choice icon="cards" label="Manual" description="One card for everything." selected={mode === 'manual'} onPress={() => choose('manual')} />
       </View>
 
       {mode === 'manual' ? (

@@ -19,7 +19,7 @@ export default function Goal() {
   return (
     <FlowScreen
       title="What do you want from your cards?"
-      subtitle="Pick the one that sounds most like you."
+      subtitle="Pick one."
       progress={progressOf('goal')}
       footer={
         <>

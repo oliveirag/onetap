@@ -50,13 +50,13 @@ export default function Dashboard() {
       ) : spending.error ? (
         <ErrorState what="Spending did not load." todo="Check your connection and try again." onRetry={() => spending.refetch()} />
       ) : !s || s.totalSpendCents === 0 ? (
-        <Empty title="No spending this month" body="Purchases on the cards you connect show up here." />
+        <Empty title="No spending this month" body="Purchases on your connected cards show up here." />
       ) : (
         <>
           <View style={{ gap: theme.space.lg }}>
             <View>
               <Text variant="body-sm" tone="secondary">
-                Spent across your cards
+                Spent
               </Text>
               <Money cents={s.totalSpendCents} variant="h1" roll />
               <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>
@@ -67,13 +67,13 @@ export default function Dashboard() {
               <View style={{ flexDirection: 'row', gap: theme.space['2xl'] }}>
                 <View style={{ flex: 1 }}>
                   <Text variant="body-sm" tone="secondary">
-                    Rewards with OneTap
+                    Rewards
                   </Text>
                   <Money cents={earned.rewardsCents} reward variant="h3" roll />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text variant="body-sm" tone="secondary">
-                    Extra vs your default card
+                    Reclaimed
                   </Text>
                   <Money cents={earned.extraCents} reward variant="h3" roll />
                 </View>
@@ -104,13 +104,12 @@ export default function Dashboard() {
               </Text>
               <Money cents={missed.missedCents} variant="h2" roll />
               <Text variant="body-sm" tone="secondary">
-                What your best card would have earned beyond the card you used, across {missed.purchases}{' '}
-                {missed.purchases === 1 ? 'purchase' : 'purchases'}
-                {missed.topCategory ? `, most of it on ${CATEGORIES[missed.topCategory.id].label.toLowerCase()}` : ''}. OneTap routes this automatically.
+                Across {missed.purchases} {missed.purchases === 1 ? 'purchase' : 'purchases'}
+                {missed.topCategory ? `, mostly ${CATEGORIES[missed.topCategory.id].label.toLowerCase()}` : ''}
               </Text>
               {missed.worst ? (
                 <Text variant="body-sm">
-                  {missed.worst.merchant} on {missed.worst.usedName}: {missed.worst.bestName} would have earned {formatCents(missed.worst.cents)} more.
+                  {missed.worst.merchant}: {missed.worst.bestName} would have earned {formatCents(missed.worst.cents)} more
                 </Text>
               ) : null}
               <DemoLabel text="Reward rates and point values are estimates" />

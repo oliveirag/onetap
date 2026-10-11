@@ -77,7 +77,7 @@ export function Segmented<T extends string>({
               <Text
                 variant="body-sm"
                 tone={selected ? 'primary' : 'secondary'}
-                style={{ fontFamily: selected ? 'JBMono-Medium' : 'JBMono-Regular', opacity: pressed && !selected ? 0.5 : 1 }}
+                style={{ fontFamily: selected ? theme.font.medium : theme.font.regular, opacity: pressed && !selected ? 0.5 : 1 }}
               >
                 {o.label}
               </Text>

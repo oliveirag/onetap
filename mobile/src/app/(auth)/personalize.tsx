@@ -10,8 +10,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 const WHAT_YOU_GET: { icon: IconName; text: string }[] = [
   { icon: 'cards', text: 'Pick the cards you carry' },
-  { icon: 'tap', text: 'Try a tap on purchases like yours' },
   { icon: 'chart', text: 'See which card wins each category' },
+  { icon: 'arrow-up', text: "See what you'd earn" },
 ];
 
 // The fork: the questionnaire is opt-in. Skip goes straight to the account.
@@ -23,7 +23,7 @@ export default function Personalize() {
   return (
     <FlowScreen
       title="Want a plan made for you?"
-      subtitle="Answer a few quick questions and see what OneTap would earn you. About a minute."
+      subtitle="Four quick questions."
       footer={
         <>
           <Button

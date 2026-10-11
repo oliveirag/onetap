@@ -1,5 +1,5 @@
 import type { IconName } from '@/components/ui/iconNames';
-import { productById } from './catalog';
+import { CATALOG, productById } from './catalog';
 import { CATEGORIES } from './categories';
 import { MERCHANTS, type MockMerchant } from './mocks/fixtures';
 import type { CategoryId } from './types';
@@ -10,38 +10,41 @@ import type { CategoryId } from './types';
 export type GoalId = 'earn' | 'trip' | 'guess' | 'budget' | 'simple';
 export type PainId = 'forget' | 'one-card' | 'worth' | 'time' | 'missing';
 
-export const GOALS: { id: GoalId; label: string; icon: IconName; pains: string }[] = [
-  { id: 'earn', label: 'Earn more on what I already buy', icon: 'arrow-up', pains: 'earning more' },
-  { id: 'trip', label: 'Save up points for a trip', icon: 'plane', pains: 'that trip' },
-  { id: 'guess', label: 'Stop guessing which card to use', icon: 'question', pains: 'picking the right card' },
-  { id: 'budget', label: 'Make a student budget go further', icon: 'student', pains: 'a budget that goes further' },
-  { id: 'simple', label: 'Keep my cards simple', icon: 'sparkles', pains: 'keeping it simple' },
+export const GOALS: { id: GoalId; label: string; icon: IconName }[] = [
+  { id: 'earn', label: 'Earn more on what I already buy', icon: 'arrow-up' },
+  { id: 'trip', label: 'Save up points for a trip', icon: 'plane' },
+  { id: 'guess', label: 'Stop guessing which card to use', icon: 'question' },
+  { id: 'budget', label: 'Make a student budget go further', icon: 'student' },
+  { id: 'simple', label: 'Keep my cards simple', icon: 'sparkles' },
 ];
 
 // Each pain has the fix we show back on the solution screen. Promises only: no invented stats.
 export const PAINS: { id: PainId; label: string; fix: string; icon: IconName }[] = [
-  { id: 'forget', label: "I can't remember which card earns what", fix: 'OneTap knows every card you own and picks the best one at the register.', icon: 'cards' },
-  { id: 'one-card', label: 'I use one card for everything', fix: 'Keep tapping one card. Each purchase still goes to the card that earns the most.', icon: 'tap' },
-  { id: 'worth', label: "I don't know what my points are worth", fix: 'Every purchase shows the points you earned and what they are worth in dollars.', icon: 'tag' },
-  { id: 'time', label: "I don't have time to track rewards", fix: 'Nothing to track. Your phone shows where each purchase went about 2 seconds after the tap.', icon: 'clock' },
-  { id: 'missing', label: "I don't know how much I'm missing", fix: 'See how much extra you earned compared with using one card, every month.', icon: 'chart' },
+  { id: 'forget', label: "I can't remember which card earns what", fix: 'We pick the best card at the register.', icon: 'cards' },
+  { id: 'one-card', label: 'I use one card for everything', fix: 'Tap one card. Each purchase still earns the most.', icon: 'tap' },
+  { id: 'worth', label: "I don't know what my points are worth", fix: 'Every purchase shows its points in dollars.', icon: 'tag' },
+  { id: 'time', label: "I don't have time to track rewards", fix: 'Nothing to track. Your phone shows every result.', icon: 'clock' },
+  { id: 'missing', label: "I don't know how much I'm missing", fix: 'See what you earned beyond one card, every month.', icon: 'chart' },
 ];
 
 export type Answers = {
   goal: GoalId | null;
   pains: PainId[];
+  wallet: string[]; // card_product ids from CATALOG, in the order picked
   spend: CategoryId[];
 };
 
-export const emptyAnswers: Answers = { goal: null, pains: [], spend: [] };
+export const emptyAnswers: Answers = { goal: null, pains: [], wallet: [], spend: [] };
 
-// Their real cards arrive with Plaid after sign-up, so the plan uses three popular cards as a
-// labeled example of what routing does with their spending.
+export const catalogChoices = CATALOG.map((p) => ({ id: p.id, name: p.name, issuer: p.issuer, art: p.card_art }));
+
+// The plan runs on the cards they say they carry; the real accounts connect with Plaid after
+// sign-up. Skipping the pick uses three popular cards instead, labeled as a sample.
 export const SAMPLE_WALLET = ['cp-amex-gold', 'cp-chase-sapphire-preferred', 'cp-citi-custom-cash'];
 const DEFAULT_SPEND: CategoryId[] = ['dining', 'groceries', 'gas'];
 
 // The screens before sign-up, in order. The progress pill counts these.
-export const FLOW = ['goal', 'pains', 'spend', 'building', 'plan', 'name', 'account'] as const;
+export const FLOW = ['goal', 'pains', 'wallet', 'spend', 'building', 'plan', 'name', 'account'] as const;
 export type FlowStep = (typeof FLOW)[number];
 
 // Fixes for the pains they picked (up to three), shown on the plan. Falls back to the first three.
@@ -74,12 +77,15 @@ export type Plan = {
   oneCardName: string;
   totalCents: number;
   oneCardCents: number;
+  sample: boolean; // true when they skipped picking cards
 };
 
+export const walletOf = (a: Answers) => (a.wallet.length ? { ids: a.wallet, sample: false } : { ids: SAMPLE_WALLET, sample: true });
+
 // One purchase per spend category they picked (topped up to three from the defaults), each routed
-// like Auto mode: highest value wins, a tie goes to the card listed first. The comparison is the
+// like Auto mode: highest value wins, a tie goes to the card picked first. The comparison is the
 // single card that would have earned the most across the same purchases, so the extra is honest.
-export function buildPlan(a: Answers, ids: string[] = SAMPLE_WALLET): Plan {
+export function buildPlan(a: Answers, ids: string[] = walletOf(a).ids): Plan {
   const cats = [...new Set([...a.spend, ...DEFAULT_SPEND])].slice(0, 3);
   const merchants = cats.map((c) => MERCHANTS.find((m) => m.category_id === c)!).filter(Boolean);
   const name = (id: string) => productById(id)?.name ?? 'Your card';
@@ -116,6 +122,7 @@ export function buildPlan(a: Answers, ids: string[] = SAMPLE_WALLET): Plan {
     oneCardName: name(oneCard),
     totalCents: purchases.reduce((s, p) => s + p.valueCents, 0),
     oneCardCents: purchases.reduce((s, p) => s + p.oneCardValueCents, 0),
+    sample: ids === SAMPLE_WALLET,
   };
 }
 
@@ -123,7 +130,6 @@ export function shareText(plan: Plan): string {
   const lines = plan.rules.map((r) => `${r.label}: ${r.cardName} (${r.multiplier}x)`);
   return ['My OneTap plan', ...lines, '', 'One card at the register. The best of my cards on every purchase.'].join('\n');
 }
-
 
 // Skipping personalization goes straight to the account, so the pill counts only those steps.
 export const SHORT_FLOW: FlowStep[] = ['name', 'account'];

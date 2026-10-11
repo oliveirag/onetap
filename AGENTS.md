@@ -65,7 +65,7 @@ Agree these before building against them; every workstream uses fake data that m
   native behavior through `app.json` / `app.config.ts` and config plugins, not by editing them.
 - Tabs: Home, Dashboard, Cards (the Assistant was removed). The routing result must appear on any tab when a new
   transaction arrives via Supabase Realtime, with a haptic, and refetch on reconnect.
-- Visual system comes from Gui's design system (achromatic, dark-first, JetBrains Mono). The store
+- Visual system comes from Gui's design system (achromatic, dark-first), set in Geist. The store
   page uses the same tokens so both screens read as one product.
 - Every screen has loading, empty and error states. One meaningful animation: the result arriving.
 

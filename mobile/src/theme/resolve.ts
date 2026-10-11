@@ -12,6 +12,8 @@ export type Theme = {
     effect: Record<string, string>;
   };
   type: Record<TypeName, TextStyle>;
+  // Family names by weight, for text that sets its own weight outside the type scale.
+  font: { regular: string; medium: string; bold: string };
   space: Record<'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl', number>;
   radius: Record<'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full', number>;
   pageMargin: number;
@@ -19,8 +21,11 @@ export type Theme = {
   hitTarget: number;
 };
 
-// Family names registered with expo-font in the root layout (JetBrains Mono NL: no ligatures).
-const FAMILY: Record<number, string> = { 400: 'JBMono-Regular', 500: 'JBMono-Medium', 700: 'JBMono-Bold' };
+// Family names registered with expo-font in the root layout: Geist, the One Tap wordmark's face.
+const FAMILY: Record<number, string> = { 400: 'Geist-Regular', 500: 'Geist-Medium', 700: 'Geist-Bold' };
+// The design system's tracking was tuned for a monospace face. Geist reads loose at heading
+// sizes, so bold text from 20px up tightens by a further 0.02em.
+const tighten = (weight: number, size: number) => (weight >= 700 && size >= 20 ? 0.02 : 0);
 
 function get(root: Json, path: string): any {
   return path.split('.').reduce((node, key) => node?.[key], root);
@@ -64,7 +69,7 @@ export function resolveTheme(tokens: Json, scheme: Scheme): Theme {
       fontFamily: FAMILY[weight],
       fontSize: size,
       lineHeight: mobile(t['line-height']),
-      letterSpacing: em * size,
+      letterSpacing: (em - tighten(weight, size)) * size,
     };
   }
 
@@ -80,6 +85,7 @@ export function resolveTheme(tokens: Json, scheme: Scheme): Theme {
   return {
     color,
     type,
+    font: { regular: FAMILY[400], medium: FAMILY[500], bold: FAMILY[700] },
     space,
     radius,
     pageMargin: mobile(r['page-margin']),

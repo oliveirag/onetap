@@ -22,10 +22,10 @@ export default function CheckEmail() {
         <Icon name="mail" size={20} />
         <View style={{ flex: 1, gap: theme.space.xs }}>
           <Text tone="secondary">We sent a confirmation link to</Text>
-          <Text style={{ fontFamily: 'JBMono-Medium' }}>{email}</Text>
+          <Text style={{ fontFamily: theme.font.medium }}>{email}</Text>
         </View>
       </View>
-      <Text tone="secondary">Open the link, then come back and log in. Your plan is saved on your account.</Text>
+      <Text tone="secondary">Open the link, then log in.</Text>
     </FlowScreen>
   );
 }

@@ -163,7 +163,12 @@ function SortableRow({
               •••• {card.mask}, {points} pts
             </Text>
           </View>
-          {isDefault ? <Badge label="Default" icon="check" /> : null}
+          {/* Wrapped: Badge hugs its content with alignSelf flex-start, which in this row would pin it to the top. */}
+          {isDefault ? (
+            <View>
+              <Badge label="Default" icon="check" />
+            </View>
+          ) : null}
           <Icon name="grip" tone="tertiary" />
         </Pressable>
       </GestureDetector>

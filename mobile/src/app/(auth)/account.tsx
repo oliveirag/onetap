@@ -48,7 +48,6 @@ export default function Account() {
   return (
     <FlowScreen
       title="Add your account info"
-      subtitle="You'll log in with this email."
       progress={progressOf('account', skipped)}
       footer={
         <>
