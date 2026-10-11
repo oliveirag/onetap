@@ -25,7 +25,7 @@ Prefer to choose yourself? Switch to Manual mode and pick the card.
 - **Backend:** Node.js, TypeScript and Express
 - **Database:** Supabase
 - **Bank connections:** Plaid
-- **Card issuing and payments:** Lithic
+- **Card issuing and payments:** Stripe
 - **Hardware:** an NFC card and a USB card reader, connected with Node.js
 - **Store checkout screen:** React and Vite
 
