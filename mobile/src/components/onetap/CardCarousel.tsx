@@ -56,7 +56,7 @@ export const CardCarousel = forwardRef<
         ))}
       </ScrollView>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.space.md }}>
-        <Text style={{ fontFamily: 'JBMono-Medium' }}>
+        <Text style={{ fontFamily: theme.font.medium }}>
           {pages[page].title}
           <Text tone="secondary">{`, ${pages[page].state.toLowerCase()}`}</Text>
         </Text>

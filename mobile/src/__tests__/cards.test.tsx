@@ -44,22 +44,22 @@ it('moves a card up with the VoiceOver action and saves the new order', async ()
 
 it('explains that card order breaks ties and that point balances are estimates', async () => {
   renderCards();
-  expect(await screen.findByText(/Order breaks ties/)).toBeTruthy();
+  expect(await screen.findByText('Higher card wins ties.')).toBeTruthy();
   expect(await screen.findByText('Point balances are demo estimates')).toBeTruthy();
 });
 
 it('lists one routing rule per category with the winning card', async () => {
   renderCards();
-  expect(await screen.findByLabelText('Use Amex Gold for dining, 4x')).toBeTruthy();
-  expect(screen.getByLabelText('Use Custom Cash for gas, 5x')).toBeTruthy();
-  expect(screen.getByLabelText('Use Sapphire Preferred for travel, 5x')).toBeTruthy();
-  expect(screen.getByLabelText('Use Active Cash for general, 2x')).toBeTruthy();
+  expect(await screen.findByLabelText('Dining: Amex Gold, 4x')).toBeTruthy();
+  expect(screen.getByLabelText('Gas: Custom Cash, 5x')).toBeTruthy();
+  expect(screen.getByLabelText('Travel: Sapphire Preferred, 5x')).toBeTruthy();
+  expect(screen.getByLabelText('General: Active Cash, 2x')).toBeTruthy();
 });
 
 it('explains that rules wait while Manual is on', async () => {
   mockStore.updateProfile({ routing_mode: 'manual', manual_card_id: 'card-citi' });
   renderCards();
-  expect(await screen.findByText(/Manual is on, so every purchase uses Custom Cash/)).toBeTruthy();
+  expect(await screen.findByText('Paused: Manual uses Custom Cash.')).toBeTruthy();
   mockStore.updateProfile({ routing_mode: 'auto', manual_card_id: null });
 });
 
@@ -79,7 +79,6 @@ it('offers Plaid to connect cards when none are connected, and to add another ba
 it('shows the OneTap card standing in for the connected cards and links the physical card', async () => {
   renderCards();
   expect(await screen.findByText('Your OneTap card')).toBeTruthy();
-  expect(await screen.findByText(/Stands in for your 4 connected cards/)).toBeTruthy();
   expect(await screen.findByLabelText('Physical card, Not linked yet')).toBeTruthy();
 
   // Confirm in place, then a countdown while the backend waits for the tap on the reader.

@@ -80,13 +80,13 @@ it('hides the projection for young histories and non-positive pace', () => {
 it('writes the one-category insight', () => {
   const i = insight([tx({}), tx({})]);
   expect(i?.rule).toBe('one_category');
-  expect(i?.sentence).toBe('All of your OneTap spending this month was dining. Routing earned $0.78 more than your default card.');
+  expect(i?.sentence).toBe('All dining this month, $0.78 reclaimed.');
 });
 
 it('names the category where routing earned the most, with its share of spending', () => {
   const i = insight([tx({}), tx({ category_id: 'gas', amount_cents: 3900, reward_value_cents: 195, baseline_value_cents: 39 })]);
   expect(i).toMatchObject({ rule: 'top_reclaimed', category: 'gas', percent: 75, amountCents: 156 });
-  expect(i?.sentence).toBe('Gas is 75% of your OneTap spending this month. Routing earned $1.56 more there than your default card.');
+  expect(i?.sentence).toBe('Gas: 75% of OneTap spend, $1.56 reclaimed.');
 });
 
 it('falls back to the biggest category when routing earned nothing extra, and flags demo history', () => {
@@ -95,6 +95,6 @@ it('falls back to the biggest category when routing earned nothing extra, and fl
     tx({ category_id: 'travel', amount_cents: 3900, reward_value_cents: 78, baseline_value_cents: 78, is_seeded: true }),
   ]);
   expect(i).toMatchObject({ rule: 'top_spend', category: 'travel', percent: 75, isDemoHistory: true });
-  expect(i?.sentence).toBe('Travel is your biggest OneTap category this month, at 75% of your OneTap spending.');
+  expect(i?.sentence).toBe('Travel: 75% of OneTap spend.');
   expect(insight([])).toBeNull();
 });

@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAnswers } from '@/components/onboarding/AnswersProvider';
 import { Enter } from '@/components/ui/Enter';
 import { Icon } from '@/components/ui/Icon';
 import { Text } from '@/components/ui/Text';
 import { duration } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
-const STEPS = ["Reading your cards' bonus categories", 'Sorting purchases into categories', 'Picking the best card for each'];
 const TICK = 550;
 
 // The processing moment. The math is instant; the pause makes the plan feel made for them.
@@ -17,7 +17,10 @@ const TICK = 550;
 export default function Building() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { answers } = useAnswers();
   const [done, setDone] = useState(0);
+  // Honest about the source: their picks, or the sample cards when they skipped picking.
+  const STEPS = [answers.wallet.length ? "Reading your cards' bonus categories" : 'Loading sample cards', 'Sorting your spending', 'Picking the best card for each'];
 
   useEffect(() => {
     if (done < STEPS.length) {
@@ -26,7 +29,7 @@ export default function Building() {
     }
     const t = setTimeout(() => router.replace('/plan'), 400);
     return () => clearTimeout(t);
-  }, [done]);
+  }, [done, STEPS.length]);
 
   return (
     <View

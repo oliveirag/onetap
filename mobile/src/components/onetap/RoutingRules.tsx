@@ -8,8 +8,8 @@ import type { Rule } from '@/lib/rules';
 import { useTheme } from '@/theme/ThemeProvider';
 import { CardArt } from './CardArt';
 
-// Curve's Smart Rules, but derived instead of written: one row per category, "Use <card> for
-// <category>", read straight from the rates and the card order. Reordering cards updates ties live.
+// Curve's Smart Rules, but derived instead of written: one row per category (the category, then the
+// card it goes to), read straight from the rates and the card order. Reordering updates ties live.
 export function RoutingRules({ rules, manualName }: { rules: Rule[]; manualName?: string }) {
   const { theme } = useTheme();
   return (
@@ -27,12 +27,11 @@ export function RoutingRules({ rules, manualName }: { rules: Rule[]; manualName?
       {rules.map((r, i) => {
         const category = CATEGORIES[r.category];
         const name = r.card.card_product?.name ?? r.card.account_name;
-        const line = `Use ${name} for ${category.label.toLowerCase()}`;
         return (
           <View
             key={r.category}
             accessible
-            accessibilityLabel={`${line}, ${formatMultiplier(r.multiplier)}${r.tie ? ', tie broken by card order' : ''}`}
+            accessibilityLabel={`${category.label}: ${name}, ${formatMultiplier(r.multiplier)}${r.tie ? ', tie broken by card order' : ''}`}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -60,14 +59,10 @@ export function RoutingRules({ rules, manualName }: { rules: Rule[]; manualName?
               <CardArt art={r.card.card_product?.card_art ?? 'solid'} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text variant="body-sm" numberOfLines={2}>
-                {line}
+              <Text variant="body-sm">{category.label}</Text>
+              <Text variant="body-sm" tone="secondary" numberOfLines={1}>
+                {r.tie ? `${name}, by card order` : name}
               </Text>
-              {r.tie ? (
-                <Text variant="caption" tone="tertiary">
-                  Tied, wins on card order
-                </Text>
-              ) : null}
             </View>
             <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>
               {formatMultiplier(r.multiplier)}

@@ -48,7 +48,7 @@ function DigitColumn({ digit, variant, tone, lineHeight }: { digit: number; vari
 const NUM: TextStyle = { fontVariant: ['tabular-nums'] };
 
 // Formatted text whose digits roll to the new value (Arc's rolling readout, rebuilt for RN).
-// JetBrains Mono is monospaced, so every column is the same width and nothing reflows.
+// Digits are tabular (fontVariant), so every column is the same width and nothing reflows.
 // Columns are keyed from the right, so $9.99 -> $10.00 keeps the cents columns in place.
 export function RollingNumber({
   text,

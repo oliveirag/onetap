@@ -22,9 +22,16 @@ describe('resolveTheme', () => {
     expect(t.controlHeight.md).toBe(44);
     expect(t.type.display.fontSize).toBe(40);
     expect(t.type.display.lineHeight).toBe(48);
-    expect(t.type.display.letterSpacing).toBeCloseTo(-0.8);
-    expect(t.type.display.fontFamily).toBe('JBMono-Bold');
-    expect(t.type.caption.fontFamily).toBe('JBMono-Medium');
+  });
+
+  it('sets every weight in Geist and tightens bold headings only', () => {
+    const t = resolveTheme(tokens, 'dark');
+    expect(t.type.display.fontFamily).toBe('Geist-Bold');
+    expect(t.type.caption.fontFamily).toBe('Geist-Medium');
+    expect(t.type.body.fontFamily).toBe('Geist-Regular');
+    expect(t.font.medium).toBe('Geist-Medium');
+    expect(t.type.display.letterSpacing).toBeCloseTo(-1.6); // -0.02em token, -0.02em for Geist, at 40px
+    expect(t.type.body.letterSpacing).toBe(0);
   });
 
   it('keeps raw rgba effect values', () => {

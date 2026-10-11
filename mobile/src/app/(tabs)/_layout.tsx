@@ -7,7 +7,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 export default function TabLayout() {
   const { theme } = useTheme();
   return (
-    <NativeTabs tintColor={theme.color.text.primary} labelStyle={{ fontFamily: 'JBMono-Medium', fontSize: 10 }}>
+    <NativeTabs tintColor={theme.color.text.primary} labelStyle={{ fontFamily: theme.font.medium, fontSize: 10 }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} />

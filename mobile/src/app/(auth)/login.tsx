@@ -40,7 +40,6 @@ export default function Login() {
   return (
     <FlowScreen
       title="Welcome back"
-      subtitle="Log in with the email you signed up with."
       footer={
         <>
           <FormError text={formError} />

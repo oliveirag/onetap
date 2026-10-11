@@ -66,7 +66,7 @@ export function Choice({
           </View>
         ) : null)}
       <View style={{ flex: 1, gap: theme.space.xs }}>
-        <Text style={{ fontFamily: 'JBMono-Medium' }}>{label}</Text>
+        <Text style={{ fontFamily: theme.font.medium }}>{label}</Text>
         {description ? (
           <Text variant="body-sm" tone="secondary">
             {description}

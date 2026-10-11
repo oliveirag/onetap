@@ -94,19 +94,19 @@ export function insight(month: TransactionRow[]): Insight | null {
     const r = rows[0];
     return {
       rule: 'one_category', category: r.id, percent: 100, amountCents: r.extra, isDemoHistory,
-      sentence: `All of your OneTap spending this month was ${label(r.id).toLowerCase()}. Routing earned ${formatCents(r.extra)} more than your default card.`,
+      sentence: `All ${label(r.id).toLowerCase()} this month, ${formatCents(r.extra)} reclaimed.`,
     };
   }
   const top = rows.filter((r) => r.extra > 0).sort((a, b) => b.extra - a.extra || b.spend - a.spend)[0];
   if (top) {
     return {
       rule: 'top_reclaimed', category: top.id, percent: pct(top.spend, total), amountCents: top.extra, isDemoHistory,
-      sentence: `${label(top.id)} is ${pct(top.spend, total)}% of your OneTap spending this month. Routing earned ${formatCents(top.extra)} more there than your default card.`,
+      sentence: `${label(top.id)}: ${pct(top.spend, total)}% of OneTap spend, ${formatCents(top.extra)} reclaimed.`,
     };
   }
   const big = [...rows].sort((a, b) => b.spend - a.spend || b.extra - a.extra)[0];
   return {
     rule: 'top_spend', category: big.id, percent: pct(big.spend, total), amountCents: big.spend, isDemoHistory,
-    sentence: `${label(big.id)} is your biggest OneTap category this month, at ${pct(big.spend, total)}% of your OneTap spending.`,
+    sentence: `${label(big.id)}: ${pct(big.spend, total)}% of OneTap spend.`,
   };
 }

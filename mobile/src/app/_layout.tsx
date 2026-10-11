@@ -16,11 +16,11 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    'JBMono-Regular': require('../../assets/fonts/JetBrainsMonoNL-Regular.ttf'),
-    'JBMono-Medium': require('../../assets/fonts/JetBrainsMonoNL-Medium.ttf'),
-    'JBMono-Bold': require('../../assets/fonts/JetBrainsMonoNL-Bold.ttf'),
-    // Logo wordmark only (One Tap identity). UI text stays JetBrains Mono.
+    // Geist for every UI weight, and SemiBold for the One Tap wordmark.
+    'Geist-Regular': require('../../assets/fonts/Geist-Regular.ttf'),
+    'Geist-Medium': require('../../assets/fonts/Geist-Medium.ttf'),
     'Geist-SemiBold': require('../../assets/fonts/Geist-SemiBold.ttf'),
+    'Geist-Bold': require('../../assets/fonts/Geist-Bold.ttf'),
   });
 
   if (!fontsLoaded) return null;

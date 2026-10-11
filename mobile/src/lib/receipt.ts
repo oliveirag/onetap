@@ -16,9 +16,9 @@ export type Receipt = {
 
 const REASON: Record<DecisionReason, string | null> = {
   best_rate: null,
-  tie_priority: 'Tied with another card. Your card order broke the tie.',
-  manual: 'You chose this card in Manual mode.',
-  fallback_default: 'Your chosen card was unavailable, so your default card was used.',
+  tie_priority: 'Tied. Your card order decided.',
+  manual: 'Your Manual pick.',
+  fallback_default: 'Your pick was unavailable, so your default card was used.',
 };
 
 // Everything "Why this card" shows, derived from the transaction row alone (plus the routed card's name).

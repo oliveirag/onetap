@@ -10,6 +10,10 @@ import { Text } from '@/components/ui/Text';
 import { duration, ease } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
+// Card width as a share of the content width. A card rotated 7 degrees is about 7% wider than it
+// is flat, so this leaves room on both sides.
+const STACK_W = 84;
+
 const enter = (delay: number) => FadeInDown.duration(duration.modal).easing(ease.out).delay(delay);
 
 // After Revolut's welcome: the physical card is the hero, because the judge is holding it.
@@ -35,14 +39,16 @@ export default function Welcome() {
         <OneTapLockup size={30} color={theme.color.text.primary} />
       </Animated.View>
 
-      <View style={{ paddingVertical: theme.space['2xl'], paddingHorizontal: theme.space.sm }}>
-        {/* The tilt lives on an inner View: the entering animation owns the outer transform. */}
-        <Animated.View entering={enter(0)} style={{ position: 'absolute', left: theme.space.xl, right: -theme.space.lg, top: theme.space.md }}>
-          <View style={{ transform: [{ rotate: '7deg' }] }}>
+      {/* Both cards are narrower than the page so their rotated corners clear the margins, and they
+          share one center: the back card peeks out evenly behind the front one. The tilt lives on
+          an inner View: the entering animation owns the outer transform. */}
+      <View style={{ paddingVertical: theme.space['2xl'] }}>
+        <Animated.View entering={enter(0)} style={{ position: 'absolute', left: `${(100 - STACK_W) / 2}%`, width: `${STACK_W}%`, top: theme.space['2xl'] }}>
+          <View style={{ transform: [{ translateX: theme.space.md }, { rotate: '7deg' }] }}>
             <OneTapCard last4="4821" side="back" />
           </View>
         </Animated.View>
-        <Animated.View entering={enter(duration.stagger)} style={{ marginTop: theme.space['3xl'] }}>
+        <Animated.View entering={enter(duration.stagger)} style={{ alignSelf: 'center', width: `${STACK_W}%`, marginTop: theme.space['3xl'] }}>
           <View style={{ transform: [{ rotate: '-6deg' }] }}>
             <OneTapCard last4="4821" status="Best card, automatically" auto />
           </View>
@@ -54,7 +60,7 @@ export default function Welcome() {
           <Text variant="h1" accessibilityRole="header">
             One card. Your best card, every time.
           </Text>
-          <Text tone="secondary">Tap once. We pick the card that earns the most.</Text>
+          <Text tone="secondary">We pick the card that earns the most.</Text>
         </Animated.View>
         <Animated.View entering={enter(duration.stagger * 3)} style={{ gap: theme.space.sm }}>
           <Button label="Get started" onPress={() => router.push('/personalize')} />

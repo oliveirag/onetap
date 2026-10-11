@@ -29,7 +29,7 @@ export default function Match() {
   return (
     <FlowScreen
       title="Are these your cards?"
-      subtitle="We matched each account to a card so we know what it earns. Tap one to change it."
+      subtitle="Tap one to fix a wrong match."
       progress={setupProgress('match')}
       onBack={() => backFrom('match')}
       footer={<Button label="Looks right" onPress={next} />}
@@ -75,7 +75,7 @@ export default function Match() {
                       •••• {c.mask}
                     </Text>
                   </View>
-                  <Text style={{ fontFamily: 'JBMono-Medium' }}>
+                  <Text style={{ fontFamily: theme.font.medium }}>
                     {matched ? `Matched to ${product.name}` : 'Other card (1x on everything)'}
                   </Text>
                 </View>

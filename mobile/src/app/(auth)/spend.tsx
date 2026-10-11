@@ -29,7 +29,7 @@ export default function Spend() {
   return (
     <FlowScreen
       title="Where do you spend the most?"
-      subtitle="Pick up to three. Your plan starts with these."
+      subtitle="Pick up to three."
       progress={progressOf('spend')}
       footer={<Button label="Build my plan" onPress={() => router.push('/building')} />}
     >
@@ -59,7 +59,7 @@ export default function Spend() {
                 <Icon name={CATEGORIES[id].icon} size={24} />
                 <CheckBox checked={on} />
               </View>
-              <Text style={{ fontFamily: 'JBMono-Medium' }}>{CATEGORIES[id].label}</Text>
+              <Text style={{ fontFamily: theme.font.medium }}>{CATEGORIES[id].label}</Text>
             </PressableScale>
           );
         })}

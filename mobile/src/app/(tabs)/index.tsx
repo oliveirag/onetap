@@ -77,7 +77,7 @@ export default function Home() {
           ) : txs.error ? (
             <ErrorState what="Activity did not load." todo="Check your connection and try again." onRetry={() => txs.refetch()} />
           ) : !txs.data?.length ? (
-            <Empty title="No purchases yet" body="Tap your OneTap card at the store and the result shows up here." />
+            <Empty title="No purchases yet" body="Tap your card at a store to start." />
           ) : (
             groupByDay(txs.data.slice(0, 20)).map((day) => (
               <View key={day.key} style={{ marginTop: theme.space.md }}>
@@ -134,11 +134,11 @@ function MonthSummary({ spending }: { spending: ReturnType<typeof useSpending> }
         </View>
       </View>
       <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>
-        {formatCents(s.rewardsCents)} earned in rewards. Reclaimed is what routing earned beyond your default card.
+        {formatCents(s.rewardsCents)} earned in rewards
       </Text>
       {s.projectionDollars != null ? (
         <Text variant="body-sm" style={{ fontVariant: ['tabular-nums'] }}>
-          On pace to reclaim about ${s.projectionDollars.toLocaleString('en-US')} a year.
+          On pace to reclaim ${s.projectionDollars.toLocaleString('en-US')} a year
         </Text>
       ) : null}
       {s.hasSeeded || s.projectionDollars != null ? (

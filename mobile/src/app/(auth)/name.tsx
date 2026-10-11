@@ -30,7 +30,7 @@ export default function Name() {
   return (
     <FlowScreen
       title="Tell us about you"
-      subtitle="Create a free account to keep your plan. Start with your name."
+      subtitle={skipped ? 'Create a free account.' : 'Create a free account to save your plan.'}
       progress={progressOf('name', skipped)}
       footer={<Button label="Next" ready={!nameError(first, 'first') && !nameError(last, 'last')} onPress={next} />}
     >

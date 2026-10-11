@@ -54,7 +54,7 @@ export function Button({
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space.sm }}>
         {loading ? <ActivityIndicator color={fg} /> : icon ? <Icon name={icon} color={fg} /> : null}
-        <Text variant="body" style={{ fontFamily: 'JBMono-Medium', color: fg }}>
+        <Text variant="body" style={{ fontFamily: theme.font.medium, color: fg }}>
           {label}
         </Text>
       </View>
