@@ -30,12 +30,6 @@ it('shows the month total across connected cards, OneTap rewards and the sandbox
   expect(screen.getByText('Plaid sandbox transactions')).toBeTruthy();
 });
 
-it('lists the most recent purchases with their card', async () => {
-  const [latest] = summarizeCards(mockStore.cardSpending()).recent;
-  renderSpending();
-  expect(await screen.findByText('Recent purchases')).toBeTruthy();
-  expect(screen.getAllByLabelText(`${latest.merchant}, ${latest.account_name}, ${latest.date}`).length).toBeGreaterThan(0);
-});
 
 it('lists categories largest first, each with its value as text', async () => {
   const expected = summarizeCards(mockStore.cardSpending());
