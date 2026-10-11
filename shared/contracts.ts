@@ -64,6 +64,9 @@ export interface TransactionRow {
   status: "approved" | "declined";
   is_seeded: boolean;            // true for demo history
   created_at: string;            // ISO 8601 UTC
+  // Stripe test-mode charge of the underlying card, after the routing decision. Null/absent: no charge.
+  charge_status?: "pending" | "succeeded" | "failed" | null;
+  charged_card_id?: string | null; // the card finally charged: the routed card, or the default after a decline
 }
 
 export interface CardProduct {
@@ -96,6 +99,7 @@ export interface UserCardRow {
   credit_limit_cents: number;
   points_balance: number;
   is_active: boolean;
+  financial_account_id?: string | null; // the Plaid account behind it; joins card_spending rows
   card_product?: CardProduct;    // present when selected with card_products(*)
 }
 

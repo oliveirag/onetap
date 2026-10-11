@@ -4,6 +4,7 @@ import { ReclaimedError } from '@reclaimed/shared';
 import type { AppContext } from '../context.js';
 import { ok } from '../lib/http.js';
 import { decideAsa, type AsaRequest } from '../integrations/lithic/asa.js';
+import type { StripePaymentIntentEvent } from '../integrations/stripe/stripe.js';
 
 function headerRecord(req: Request): Record<string, string> {
   const out: Record<string, string> = {};
@@ -11,7 +12,7 @@ function headerRecord(req: Request): Record<string, string> {
   return out;
 }
 
-async function storeWebhook(ctx: AppContext, provider: 'plaid' | 'lithic', externalId: string | null, type: string, verified: boolean, payload: unknown) {
+async function storeWebhook(ctx: AppContext, provider: 'plaid' | 'lithic' | 'stripe',externalId: string | null, type: string, verified: boolean, payload: unknown) {
   const { rows } = await ctx.db.query<{ id: string }>(
     `insert into webhook_events (provider, external_id, event_type, verified, payload) values ($1, $2, $3, $4, $5)
      on conflict do nothing returning id`,
@@ -80,6 +81,32 @@ export function webhookRoutes(ctx: AppContext): Router {
       );
     }
     ok(res, { received: true });
+  });
+
+  // ---------- Stripe (charge status) ----------
+  r.post('/webhooks/stripe', async (req, res) => {
+    const raw = (req.rawBody ?? Buffer.from('')).toString('utf8');
+    if (!ctx.stripe || !ctx.services.charges || !ctx.config.STRIPE_WEBHOOK_SECRET) throw new ReclaimedError('STRIPE_NOT_CONFIGURED');
+    let event: StripePaymentIntentEvent;
+    try {
+      event = ctx.stripe.constructEvent(raw, req.header('stripe-signature') ?? '', ctx.config.STRIPE_WEBHOOK_SECRET);
+    } catch {
+      throw new ReclaimedError('WEBHOOK_VERIFICATION_FAILED');
+    }
+    // Stripe redelivers until it gets a 2xx, so a stored event that failed earlier is processed again.
+    const id =
+      (await storeWebhook(ctx, 'stripe', event.id, event.type, true, event)) ??
+      (await ctx.db.query<{ id: string }>(`select id from webhook_events where provider = 'stripe' and external_id = $1 and processed_at is null`, [event.id])).rows[0]?.id ??
+      null;
+    if (id === null) return ok(res, { received: true, duplicate: true });
+    try {
+      const outcome = await ctx.services.charges.handleEvent(event);
+      await ctx.db.query('update webhook_events set processed_at = now() where id = $1', [id]);
+      ok(res, { received: true, outcome: outcome.kind });
+    } catch (err) {
+      await ctx.db.query('update webhook_events set error = $2 where id = $1', [id, (err as Error).message?.slice(0, 500) ?? 'error']);
+      throw err;
+    }
   });
   return r;
 }

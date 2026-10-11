@@ -90,3 +90,13 @@ it('shows the OneTap card standing in for the connected cards and links the phys
   expect(await screen.findByLabelText('Physical card, Linked', {}, { timeout: 3000 })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Link physical card' })).toBeNull();
 });
+
+it('freezes and unfreezes the OneTap card from its switch', async () => {
+  renderCards();
+  const toggle = await screen.findByRole('switch', { name: 'Freeze card' });
+  fireEvent.press(toggle);
+  expect(await screen.findByLabelText('OneTap card ending 4821, Frozen')).toBeTruthy();
+  await waitFor(() => expect(mockStore.oneTapCard().state).toBe('paused'));
+  fireEvent.press(screen.getByRole('switch', { name: 'Freeze card' }));
+  await waitFor(() => expect(mockStore.oneTapCard().state).toBe('open'));
+});

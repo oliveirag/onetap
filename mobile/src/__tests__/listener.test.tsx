@@ -75,3 +75,14 @@ it('opens for a fresh row that arrives through a refetch (offline during the tap
   await waitFor(() => expect(mockPush).toHaveBeenCalledWith({ pathname: '/result/[id]', params: { id: 'c' } }));
   expect(haptics.resultArrived).toHaveBeenCalledTimes(1);
 });
+
+it('updates the feed row in place when the Stripe charge settles, without reopening the receipt', async () => {
+  const { client } = setup();
+  await waitFor(() => expect(client.getQueryData(keys.transactions)).toBeDefined());
+  act(() => mockEmitter.emit({ ...fresh('d'), charge_status: 'pending' }));
+  act(() => mockEmitter.emit({ ...fresh('d'), charge_status: 'succeeded' }));
+  const rows = client.getQueryData<TransactionRow[]>(keys.transactions)!.filter((t) => t.id === 'd');
+  expect(rows.map((t) => t.charge_status)).toEqual(['succeeded']);
+  expect(client.getQueryData<TransactionRow>(keys.transaction('d'))?.charge_status).toBe('succeeded');
+  expect(mockPush).toHaveBeenCalledTimes(1);
+});

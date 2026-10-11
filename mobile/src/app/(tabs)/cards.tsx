@@ -11,6 +11,7 @@ import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
+import { Toggle } from '@/components/ui/Toggle';
 import { apiMessage } from '@/lib/api';
 import { formatClock, useCountdown } from '@/lib/countdown';
 import { LinkCanceled } from '@/lib/plaid';
@@ -23,6 +24,7 @@ import {
   useOneTapCard,
   useProfile,
   useReorderCards,
+  useSetCardFrozen,
   useSetDefaultCard,
   useUserCards,
 } from '@/lib/queries';
@@ -46,9 +48,11 @@ export default function Cards() {
   const oneTap = useOneTapCard();
   const createCard = useCreateOneTapCard();
   const linkPhysical = useLinkPhysicalCard();
+  const setFrozen = useSetCardFrozen();
   const card = oneTap.data ?? createCard.data ?? null;
+  const frozen = card?.state === 'paused';
   const cardCount = cards.data?.length ?? 0;
-  const cardError = createCard.error ?? linkPhysical.error;
+  const cardError = createCard.error ?? linkPhysical.error ?? setFrozen.error;
   // The backend waits up to 45 s for the physical card on the reader (ONETAP_ENROLL_WAIT_MS).
   const left = useCountdown(linkPhysical.isPending, 45);
   const carousel = useRef<CardCarouselHandle>(null);
@@ -93,8 +97,8 @@ export default function Cards() {
           <CardCarousel
             ref={carousel}
             last4={card?.last4 ?? '••••'}
-            status={manualName ? `Always ${manualName}` : card ? 'Best card, automatically' : undefined}
-            auto={!manualName}
+            status={frozen ? 'Frozen' : manualName ? `Always ${manualName}` : card ? 'Best card, automatically' : undefined}
+            auto={!manualName && !frozen}
             created={!!card}
             physicalLinked={!!card?.physical_linked}
           />
@@ -104,6 +108,14 @@ export default function Cards() {
             ? `Stands in for your ${cardCount} connected ${cardCount === 1 ? 'card' : 'cards'}: each purchase goes to the one that earns the most.`
             : 'Connect your cards below so it can route each purchase.'}
         </Text>
+        {card ? (
+          <Toggle
+            label="Freeze card"
+            description={frozen ? 'Every tap is declined until you unfreeze it.' : 'Declines every tap at once, without cancelling the card.'}
+            value={frozen}
+            onValueChange={(v) => setFrozen.mutate({ card, frozen: v })}
+          />
+        ) : null}
         <FormError text={cardError ? (apiMessage(cardError) ?? "That didn't finish. Check your connection and try again.") : null} />
         {/* Confirm in place (no alert), after Revolut: the button turns into the question. */}
         {!card && !oneTap.isLoading ? (

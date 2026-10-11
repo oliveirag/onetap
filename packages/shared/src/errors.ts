@@ -40,6 +40,7 @@ export const ERROR_CODES = {
   INVALID_PAYMENT_STATE: { status: 409, retryable: false, message: 'That action is not allowed in the current state.' },
   LITHIC_NOT_CONFIGURED: { status: 503, retryable: false, message: 'Lithic Sandbox is not configured.' },
   LITHIC_REQUEST_FAILED: { status: 502, retryable: true, message: 'The Lithic Sandbox request failed.' },
+  STRIPE_NOT_CONFIGURED: { status: 503, retryable: false, message: 'Stripe test mode is not configured.' },
   DATABASE_ERROR: { status: 500, retryable: true, message: 'A database error occurred.' },
   INTERNAL_ERROR: { status: 500, retryable: true, message: 'Something went wrong on our side.' },
 } as const satisfies Record<string, { status: number; retryable: boolean; message: string }>;

@@ -103,6 +103,15 @@ export function Receipt({ tx, cardName, cardMask }: { tx: TransactionRow; cardNa
           </Text>
         </View>
       ) : null}
+
+      {r.chargeNote ? (
+        <>
+          <Tear />
+          <Text variant="body-sm" tone="secondary">
+            {r.chargeNote}
+          </Text>
+        </>
+      ) : null}
     </Animated.View>
   );
 }

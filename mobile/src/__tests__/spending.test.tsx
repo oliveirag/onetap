@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import Dashboard from '@/app/(tabs)/spending';
 import { summarizeCards } from '@/lib/dashboard';
+import { missedRewards } from '@/lib/missed';
 import { mockStore } from '@/lib/mocks/store';
 import { aggregate } from '@/lib/spending';
 import { formatCents } from '@/lib/money';
@@ -54,4 +55,14 @@ it('starts on the largest category and moves the selection when another row is t
   fireEvent.press(screen.getByRole('button', { name: row(second) }));
   expect(screen.getByRole('button', { name: row(second) }).props.accessibilityState).toEqual({ selected: true });
   expect(screen.getByRole('button', { name: row(top) }).props.accessibilityState).toEqual({ selected: false });
+});
+
+it('shows what the connected cards left on the table and the insight sentence', async () => {
+  const missed = missedRewards(mockStore.cardSpending(), mockStore.cards(), mockStore.rates())!;
+  const { insight } = aggregate(mockStore.transactions(), mockStore.cards());
+  expect(missed.missedCents).toBeGreaterThan(0);
+  renderSpending();
+  expect(await screen.findByText('Left on the table this month')).toBeTruthy();
+  expect(screen.getByLabelText(formatCents(missed.missedCents))).toBeTruthy();
+  expect(screen.getByText(insight!.sentence)).toBeTruthy();
 });
