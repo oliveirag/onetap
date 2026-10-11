@@ -1,12 +1,13 @@
+import { hostname } from "node:os";
 import { normalizeUid } from "@shared/nfc.ts";
 
 export type TapOutput = "websocket" | "http" | "both";
 
 export interface Config {
-  terminalId: string;
+  bridgeId: string;
   tapOutput: TapOutput;
   wsPort: number;
-  tapUrl: string | null;      // BACKEND_URL + TAP_PATH; null unless output includes http
+  apiUrl: string | null;      // BRIDGE_API_URL; null unless output includes http
   secret: string | null;      // never log this
   demoCardUid: string | null;
   debounceMs: number;
@@ -35,13 +36,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const wsPort = int("WS_PORT", 8787, env);
   if (wsPort < 1 || wsPort > 65535) throw new Error("WS_PORT must be between 1 and 65535");
 
-  let tapUrl: string | null = null;
+  let apiUrl: string | null = null;
   let secret: string | null = null;
   if (tapOutput !== "websocket") {
-    const base = env.BACKEND_URL?.trim();
-    if (!base) throw new Error(`BACKEND_URL is required when TAP_OUTPUT=${tapOutput}`);
-    const path = env.TAP_PATH?.trim() || "/hardware/taps";
-    tapUrl = new URL(base.replace(/\/+$/, "") + (path.startsWith("/") ? path : `/${path}`)).toString();
+    const base = env.BRIDGE_API_URL?.trim();
+    if (!base) throw new Error(`BRIDGE_API_URL is required when TAP_OUTPUT=${tapOutput}`);
+    apiUrl = new URL(base).origin;
     secret = env.HARDWARE_BRIDGE_SECRET?.trim() || null;
     if (!secret || secret.length < 32) {
       throw new Error(`HARDWARE_BRIDGE_SECRET must be set (32+ characters) when TAP_OUTPUT=${tapOutput}`);
@@ -51,10 +51,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const demo = env.DEMO_CARD_UID?.trim();
 
   return {
-    terminalId: env.TERMINAL_ID?.trim() || "store-laptop-1",
+    bridgeId: env.HARDWARE_BRIDGE_ID?.trim() || `bridge-${hostname().split(".")[0]}`,
     tapOutput,
     wsPort,
-    tapUrl,
+    apiUrl,
     secret,
     demoCardUid: demo ? normalizeUid(demo) : null,
     debounceMs: int("DEBOUNCE_MS", 1500, env),

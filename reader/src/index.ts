@@ -20,7 +20,7 @@ if (existsSync(envPath)) process.loadEnvFile(envPath);
 const config = loadConfig();
 const log = pino({
   level: config.logLevel,
-  base: { terminalId: config.terminalId },
+  base: { bridgeId: config.bridgeId },
   timestamp: pino.stdTimeFunctions.isoTime,
   redact: { paths: ["secret", "*.secret", "HARDWARE_BRIDGE_SECRET", "headers.*"], censor: "[redacted]" },
 });
@@ -37,7 +37,7 @@ process.on("exit", lock.release);
 
 const sinks: TapSink[] = [];
 if (config.tapOutput !== "http") sinks.push(await startWsSink(config.wsPort, log));
-if (config.tapOutput !== "websocket") sinks.push(createHttpSink(config.tapUrl!, config.secret!, log));
+if (config.tapOutput !== "websocket") sinks.push(createHttpSink(config.apiUrl!, config.secret!, log));
 
 const bridge = createBridge({ config, sinks, log });
 const pcsc = startPcsc(log, bridge.cardHandlers);

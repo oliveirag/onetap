@@ -6,3 +6,4 @@ export * from './money';
 export * from './merchants';
 export * from './realtime';
 export * from './constants';
+export * from './nfc';

@@ -1,14 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import type { TapEvent } from "@shared/contracts.ts";
 import type { CardType } from "./atr.ts";
 import type { Config } from "./config.ts";
 import { TapGate } from "./gate.ts";
-import type { CardHandlers } from "./pcsc.ts";
-import type { BridgeTapEvent, TapSink } from "./tap.ts";
+import { PICC_READER_NAME, type CardHandlers } from "./pcsc.ts";
+import type { BridgeTapEvent, TapSink, TapSource } from "./tap.ts";
 
 export interface BridgeDeps {
-  config: Pick<Config, "terminalId" | "debounceMs" | "demoCardUid">;
+  config: Pick<Config, "bridgeId" | "debounceMs" | "demoCardUid">;
   sinks: TapSink[];
   log: Logger;
   now?: () => number;
@@ -21,7 +20,7 @@ export function createBridge({ config, sinks, log, now = Date.now }: BridgeDeps)
   const pending = new Set<Promise<void>>();
 
   // Single path for every tap, real or fake.
-  function handleTap(cardId: string, cardType: CardType, readerName: string, source: TapEvent["source"]) {
+  function handleTap(cardId: string, cardType: CardType, readerName: string, source: TapSource) {
     const at = now();
     const result = gate.detected(cardId, at, source === "nfc");
     if (!result.tap) {
@@ -31,11 +30,11 @@ export function createBridge({ config, sinks, log, now = Date.now }: BridgeDeps)
 
     const tap: BridgeTapEvent = {
       tapId: randomUUID(),
-      cardId,
+      uid: cardId,
       cardType,
-      terminalId: config.terminalId,
+      bridgeId: config.bridgeId,
       readerName,
-      timestamp: new Date(at).toISOString(),
+      presentedAt: new Date(at).toISOString(),
       source,
     };
     log.info({ tap }, "tap");
@@ -61,7 +60,8 @@ export function createBridge({ config, sinks, log, now = Date.now }: BridgeDeps)
       log.warn("fake_tap_unavailable_set_DEMO_CARD_UID");
       return;
     }
-    handleTap(config.demoCardUid, "fake", "keyboard", "fake_tap");
+    // Same reader name as a real tap, so the backend routes it to the same reader (and its checkouts).
+    handleTap(config.demoCardUid, "fake", PICC_READER_NAME, "fake_tap");
   }
 
   // Waits for in-flight sends (and their retries). Resolves false if they don't finish in time.

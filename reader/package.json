@@ -9,12 +9,13 @@
   },
   "scripts": {
     "start": "tsx src/index.ts",
-    "dev:hardware": "node --watch-path=src --watch-path=../shared --import tsx src/index.ts",
+    "dev:hardware": "node --watch-path=src --watch-path=../packages/shared/src --import tsx src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:watch": "vitest",
     "diagnose": "tsx src/diagnose.ts",
-    "hardware-test": "tsx src/hardware-test.ts"
+    "hardware-test": "tsx src/hardware-test.ts",
+    "demo": "tsx src/demo.ts"
   },
   "dependencies": {
     "nfc-pcsc": "^0.8.1",

@@ -1,27 +1,33 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createHmac } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { verifyRequestSignature } from "@shared/node/index.ts";
+import { tapEventSchema } from "@shared/schemas.ts";
 import { captureLog } from "./helpers/log.ts";
-import { createHttpSink, signTap } from "../src/http-sink.ts";
+import { createHttpSink, TAP_EVENTS_PATH } from "../src/http-sink.ts";
 import type { BridgeTapEvent } from "../src/tap.ts";
 
 const SECRET = "test-secret-0123456789abcdef0123456789";
 const NO_BACKOFF = [0, 0, 0];
 const tap: BridgeTapEvent = {
   tapId: "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b",
-  cardId: "049315A93F0289",
+  uid: "049315A93F0289",
   cardType: "ntag_or_ultralight",
-  terminalId: "store-laptop-1",
+  bridgeId: "store-laptop-1",
   readerName: "ACS ACR1252 Dual Reader PICC",
-  timestamp: "2026-10-10T18:39:27.653Z",
+  presentedAt: "2026-10-10T18:39:27.653Z",
   source: "nfc",
 };
 
 interface Received {
+  method: string;
+  path: string;
   headers: IncomingMessage["headers"];
   body: string;
 }
+
+type Reply = { status: number; error?: { code: string; retryable?: boolean } } | "drop";
+const OK: Reply = { status: 200 };
 
 let closeServer: (() => Promise<void>) | null = null;
 afterEach(async () => {
@@ -29,72 +35,87 @@ afterEach(async () => {
   closeServer = null;
 });
 
-// Local backend stand-in. `respond` decides per request: a status code, or "drop" to kill the connection.
-async function backend(respond: (n: number) => number | "drop") {
+// Local backend stand-in that answers with the API's envelope. `respond` decides per request.
+async function backend(respond: (n: number) => Reply) {
   const received: Received[] = [];
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     let body = "";
     req.on("data", (c) => (body += c));
     req.on("end", () => {
-      received.push({ headers: req.headers, body });
-      const action = respond(received.length);
-      if (action === "drop") return req.socket.destroy();
-      res.statusCode = action;
-      res.end();
+      received.push({ method: req.method!, path: req.url!.split("?")[0], headers: req.headers, body });
+      const r = respond(received.length);
+      if (r === "drop") return req.socket.destroy();
+      res.statusCode = r.status;
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(
+        r.error
+          ? { success: false, error: { message: r.error.code, retryable: false, ...r.error } }
+          : { success: true, data: { tapId: JSON.parse(body).tapId, outcome: "UNKNOWN_CARD", message: "This NFC card is not enrolled in Reclaimed." } },
+      ));
     });
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   closeServer = () => new Promise<void>((r) => server.close(() => r()));
   const { port } = server.address() as AddressInfo;
-  return { url: `http://127.0.0.1:${port}/hardware/taps`, received };
+  return { url: `http://127.0.0.1:${port}`, received };
 }
 
-// What the backend should do to verify, written independently of signTap.
-function backendVerifies(r: Received) {
-  const ts = r.headers["x-reclaimed-timestamp"] as string;
-  const expected = createHmac("sha256", SECRET).update(ts + r.body).digest("hex");
-  return r.headers["x-reclaimed-signature"] === expected;
+// Exactly what the API's requireBridge does (apps/api/src/middleware/auth.ts).
+function backendVerifies(r: Received, secret = SECRET) {
+  const sig = (r.headers["x-reclaimed-signature"] as string) ?? "";
+  const parts = { timestamp: (r.headers["x-reclaimed-timestamp"] as string) ?? "", method: r.method, path: r.path, body: r.body };
+  return Boolean(r.headers["x-reclaimed-bridge-id"]) && verifyRequestSignature(secret, parts, sig);
 }
-
-describe("signTap", () => {
-  it("is hex HMAC-SHA256 of timestamp + body (fixed vector)", () => {
-    // echo -n '1700000000000{"a":1}' | openssl dgst -sha256 -hmac secret
-    expect(signTap("secret", "1700000000000", '{"a":1}')).toBe(
-      "d2933619db6d2527b03c5871b07d6754abe07947900ff9b1eedd05e5a7156292",
-    );
-  });
-});
 
 describe("http sink", () => {
-  it("sends the tap as JSON with timestamp and signature headers the backend can verify", async () => {
-    const b = await backend(() => 202);
-    const before = Date.now();
+  it("POSTs to /api/v1/hardware/tap-events with headers the backend verifies", async () => {
+    const b = await backend(() => OK);
     await createHttpSink(b.url, SECRET, captureLog().log, NO_BACKOFF).send(tap);
 
     expect(b.received).toHaveLength(1);
     const r = b.received[0];
+    expect(r.method).toBe("POST");
+    expect(r.path).toBe(TAP_EVENTS_PATH);
+    expect(TAP_EVENTS_PATH).toBe("/api/v1/hardware/tap-events");
     expect(r.headers["content-type"]).toBe("application/json");
+    expect(r.headers["x-reclaimed-bridge-id"]).toBe(tap.bridgeId);
+    expect(new Date(r.headers["x-reclaimed-timestamp"] as string).toISOString()).toBe(r.headers["x-reclaimed-timestamp"]);
     expect(JSON.parse(r.body)).toEqual(tap);
-    expect(Number(r.headers["x-reclaimed-timestamp"])).toBeGreaterThanOrEqual(before);
-    expect(r.headers["x-reclaimed-signature"]).toMatch(/^[0-9a-f]{64}$/);
+    expect(tapEventSchema.safeParse(JSON.parse(r.body)).success).toBe(true);
     expect(backendVerifies(r)).toBe(true);
   });
 
-  it("a tampered body fails verification", async () => {
-    const b = await backend(() => 202);
+  it("fails verification with a tampered body, a different path or the wrong secret", async () => {
+    const b = await backend(() => OK);
     await createHttpSink(b.url, SECRET, captureLog().log, NO_BACKOFF).send(tap);
     const r = b.received[0];
-    expect(backendVerifies({ ...r, body: r.body.replace(tap.cardId, "DEADBEEF") })).toBe(false);
+    expect(backendVerifies({ ...r, body: r.body.replace(tap.uid, "DEADBEEF") })).toBe(false);
+    expect(backendVerifies({ ...r, path: "/hardware/taps" })).toBe(false);
+    expect(backendVerifies(r, "another-secret-0123456789abcdef")).toBe(false);
+  });
+
+  it("works when BRIDGE_API_URL has a trailing slash", async () => {
+    const b = await backend(() => OK);
+    await createHttpSink(`${b.url}/`, SECRET, captureLog().log, NO_BACKOFF).send(tap);
+    expect(b.received[0].path).toBe(TAP_EVENTS_PATH);
+    expect(backendVerifies(b.received[0])).toBe(true);
+  });
+
+  it("logs the backend's outcome", async () => {
+    const b = await backend(() => OK);
+    const logs = captureLog();
+    await createHttpSink(b.url, SECRET, logs.log, NO_BACKOFF).send(tap);
+    expect(logs.lines.find((l) => l.msg === "tap_sent")).toMatchObject({ status: 200, attempt: 1, outcome: "UNKNOWN_CARD" });
   });
 
   it("retries a dropped connection with the same tapId and a fresh valid signature", async () => {
-    const b = await backend((n) => (n < 3 ? "drop" : 200));
+    const b = await backend((n) => (n < 3 ? "drop" : OK));
     const logs = captureLog();
     await createHttpSink(b.url, SECRET, logs.log, NO_BACKOFF).send(tap);
 
     expect(b.received).toHaveLength(3);
     expect(b.received.map((r) => JSON.parse(r.body).tapId)).toEqual([tap.tapId, tap.tapId, tap.tapId]);
-    expect(b.received.every(backendVerifies)).toBe(true);
+    expect(b.received.every((r) => backendVerifies(r))).toBe(true);
     expect(logs.lines.filter((l) => l.msg === "tap_failed").map((l) => l.willRetry)).toEqual([true, true]);
     expect(logs.lines.find((l) => l.msg === "tap_sent")).toMatchObject({ attempt: 3, status: 200 });
   });
@@ -108,18 +129,26 @@ describe("http sink", () => {
     expect(logs.lines.find((l) => l.msg === "tap_failed")?.reason).toMatch(/\S/); // a readable reason, not ""
   });
 
-  it.each([400, 401, 409, 422])("never retries a %i", async (status) => {
-    const b = await backend(() => status);
+  it.each([
+    [400, "VALIDATION_ERROR"],
+    [401, "HARDWARE_AUTH_FAILED"],
+    [409, "NFC_DUPLICATE_TAP"],
+  ])("never retries a %i (%s) and logs the backend's error code", async (status, code) => {
+    const b = await backend(() => ({ status, error: { code } }));
     const logs = captureLog();
     await createHttpSink(b.url, SECRET, logs.log, NO_BACKOFF).send(tap);
     expect(b.received).toHaveLength(1);
-    expect(logs.lines.find((l) => l.msg === "tap_failed")).toMatchObject({ status, reason: "http_status" });
+    expect(logs.lines.find((l) => l.msg === "tap_failed")).toMatchObject({ status, reason: code, willRetry: false });
   });
 
-  it("does not retry a 5xx either (only network errors are retried)", async () => {
-    const b = await backend(() => 503);
+  it.each([
+    ["a 503", { status: 503, error: { code: "SERVICE_UNAVAILABLE" } }],
+    ["a 429", { status: 429, error: { code: "RATE_LIMITED" } }],
+    ["a 4xx the backend marks retryable", { status: 409, error: { code: "CONFLICT", retryable: true } }],
+  ] as [string, Reply][])("retries %s", async (_name, reply) => {
+    const b = await backend((n) => (n === 1 ? reply : OK));
     await createHttpSink(b.url, SECRET, captureLog().log, NO_BACKOFF).send(tap);
-    expect(b.received).toHaveLength(1);
+    expect(b.received).toHaveLength(2);
   });
 
   it("stops retrying once the sink is closing", async () => {
@@ -133,12 +162,13 @@ describe("http sink", () => {
     expect(b.received).toHaveLength(1);
   });
 
-  it("never logs the secret or the signature", async () => {
-    const b = await backend((n) => (n === 1 ? "drop" : 200));
-    const logs = captureLog();
+  it("never logs the secret or the signature, even at debug level", async () => {
+    const b = await backend((n) => (n === 1 ? "drop" : OK));
+    const logs = captureLog(); // records debug and up
     await createHttpSink(b.url, SECRET, logs.log, NO_BACKOFF).send(tap);
     const text = JSON.stringify(logs.lines);
+    expect(logs.lines.some((l) => l.msg === "tap_request")).toBe(true);
     expect(text).not.toContain(SECRET);
-    expect(text).not.toContain(b.received[0].headers["x-reclaimed-signature"] as string);
+    for (const r of b.received) expect(text).not.toContain(r.headers["x-reclaimed-signature"] as string);
   });
 });

@@ -4,6 +4,7 @@ import { captureLog } from "./helpers/log.ts";
 import { createBridge } from "../src/bridge.ts";
 import { startPcsc } from "../src/pcsc.ts";
 import type { BridgeTapEvent, TapSink } from "../src/tap.ts";
+import { tapEventSchema } from "@shared/schemas.ts";
 
 vi.mock("nfc-pcsc", () => import("./helpers/fake-pcsc.ts"));
 
@@ -20,7 +21,7 @@ function setup(demoCardUid: string | null = CARD_A) {
   const sink: TapSink = { name: "test", send: async (t) => void sent.push(t), close: async () => {} };
   const logs = captureLog();
   const bridge = createBridge({
-    config: { terminalId: "store-laptop-1", debounceMs: 1500, demoCardUid },
+    config: { bridgeId: "store-laptop-1", debounceMs: 1500, demoCardUid },
     sinks: [sink],
     log: logs.log,
     now: () => clock,
@@ -82,7 +83,7 @@ describe("debounce through the full path", () => {
     reader.lift();
     reader.place(CARD_B);
     await settle();
-    expect(sent.map((t) => t.cardId)).toEqual([CARD_A, CARD_B]);
+    expect(sent.map((t) => t.uid)).toEqual([CARD_A, CARD_B]);
   });
 
   it("after unplug and replug, the same card taps again once the window passes", async () => {
@@ -105,13 +106,15 @@ describe("tap event", () => {
     await settle();
     expect(sent[0]).toEqual({
       tapId: expect.stringMatching(UUID),
-      cardId: CARD_A,
+      uid: CARD_A,
       cardType: "ntag_or_ultralight",
-      terminalId: "store-laptop-1",
+      bridgeId: "store-laptop-1",
       readerName: PICC,
-      timestamp: expect.stringMatching(ISO_UTC),
+      presentedAt: expect.stringMatching(ISO_UTC),
       source: "nfc",
     });
+    // The backend validates taps with this schema; a rename on either side fails here first.
+    expect(tapEventSchema.safeParse(sent[0]).success).toBe(true);
   });
 
   it("a fake tap has the same shape as a real tap, with source fake_tap", async () => {
@@ -128,9 +131,10 @@ describe("tap event", () => {
       expect(typeof fake[key], key).toBe(typeof real[key]);
     }
     expect(fake.tapId).toMatch(UUID);
-    expect(fake.timestamp).toMatch(ISO_UTC);
-    expect(fake.cardId).toBe(real.cardId);
-    expect(fake.terminalId).toBe(real.terminalId);
+    expect(fake.presentedAt).toMatch(ISO_UTC);
+    expect(fake.uid).toBe(real.uid);
+    expect(fake.bridgeId).toBe(real.bridgeId);
+    expect(fake.readerName).toBe(real.readerName); // backend keys readers on (bridgeId, readerName)
     expect(fake.source).toBe("fake_tap");
     expect(real.source).toBe("nfc");
   });
@@ -158,7 +162,7 @@ describe("flush", () => {
     let release!: () => void;
     const slow: TapSink = { name: "slow", send: () => new Promise<void>((r) => (release = r)), close: async () => {} };
     const { log } = captureLog();
-    const bridge = createBridge({ config: { terminalId: "t", debounceMs: 1500, demoCardUid: CARD_A }, sinks: [slow], log });
+    const bridge = createBridge({ config: { bridgeId: "t", debounceMs: 1500, demoCardUid: CARD_A }, sinks: [slow], log });
     bridge.fakeTap();
     expect(bridge.pendingCount()).toBe(1);
     expect(await bridge.flush(20)).toBe(false);

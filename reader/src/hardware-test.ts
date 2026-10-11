@@ -45,9 +45,9 @@ const log = pino(
 
 function describe(e: Ev): string {
   const t = e.time.slice(11, 23);
-  const tap = e.tap as { tapId: string; cardId: string; source: string } | undefined;
+  const tap = e.tap as { tapId: string; uid: string; source: string } | undefined;
   const fields =
-    e.msg === "tap" ? `cardId=${tap!.cardId} tapId=${tap!.tapId.slice(0, 8)} source=${tap!.source}`
+    e.msg === "tap" ? `cardId=${tap!.uid} tapId=${tap!.tapId.slice(0, 8)} source=${tap!.source}`
     : e.msg === "card_detected" ? `cardId=${e.cardId} cardType=${e.cardType} atr=${e.atr} readMs=${e.readMs}`
     : e.msg === "duplicate_ignored" ? `cardId=${e.cardId} reason=${e.reason} sinceMs=${e.sinceMs}`
     : e.msg === "card_removed" ? `cardId=${e.cardId}`
@@ -56,7 +56,7 @@ function describe(e: Ev): string {
   return `${t}  ${e.msg.padEnd(18)} ${fields}`;
 }
 
-const taps = (evs: Ev[]) => evs.filter((e) => e.msg === "tap").map((e) => (e.tap as { cardId: string }).cardId);
+const taps = (evs: Ev[]) => evs.filter((e) => e.msg === "tap").map((e) => (e.tap as { uid: string }).uid);
 const count = (evs: Ev[], msg: string) => evs.filter((e) => e.msg === msg).length;
 
 // ---------- Terminal I/O ----------
@@ -215,8 +215,9 @@ const physicalTests: Test[] = [
 ];
 
 async function backendStatus(): Promise<{ ok: boolean; detail: string }> {
-  const url = process.env.BACKEND_URL?.trim();
-  if (!url) return { ok: false, detail: "BACKEND_URL is not set" };
+  const base = process.env.BRIDGE_API_URL?.trim();
+  if (!base) return { ok: false, detail: "BRIDGE_API_URL is not set" };
+  const url = `${base.replace(/\/+$/, "")}/health`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
     await res.body?.cancel();
@@ -294,7 +295,7 @@ async function main() {
 
   const sink: TapSink = { name: "test", send: async () => {}, close: async () => {} };
   const bridge = createBridge({
-    config: { terminalId: process.env.TERMINAL_ID?.trim() || "store-laptop-1", debounceMs: Number(process.env.DEBOUNCE_MS) || 1500, demoCardUid: null },
+    config: { bridgeId: process.env.HARDWARE_BRIDGE_ID?.trim() || "store-laptop-1", debounceMs: Number(process.env.DEBOUNCE_MS) || 1500, demoCardUid: null },
     sinks: [sink],
     log,
   });

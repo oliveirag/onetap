@@ -31,7 +31,8 @@ Physical card-level behaviour has **not** been verified yet; see [hardware-test-
 
 ## Commands
 
-**⚠ CONTRADICTION C4:** `reader/` defines the same three root command names.
+`reader/` uses its own root commands: `npm run dev:reader`, `npm run reader:diagnose`, `npm run reader:test`,
+and `npm run demo:hardware` (see [Demo day](#demo-day)).
 
 | Command | Description |
 |---|---|
@@ -120,6 +121,107 @@ and the dummy AID is never used.
 | Replug (12 s later) | Both readers re-announced; PICC listening again, SAM ignored again |
 | Tap after replug | Card A read as `049315A93F0289` (same UID as before), then removal logged |
 
+## Demo day
+
+### 1. Plug in
+
+1. Plug the ACR1252U into the Mac (directly or through the USB-C hub). Its LED lights up.
+2. Start the backend in its own terminal and leave it running: `npm run dev:api`.
+3. Optional: start the terminal page with `npm run dev:terminal`, then open http://localhost:5173.
+
+### 2. Run the bridge
+
+From the repo root, in its own terminal window:
+
+```sh
+npm run demo:hardware
+```
+
+This command:
+
+- checks that macOS sees the reader's PICC slot, and stops with a clear error if not
+- checks the backend's `/health`, and stops with a clear error if it is down
+- runs `caffeinate -dimsu` so the Mac, display and disk don't sleep
+- starts the bridge with `TAP_OUTPUT=both`, so taps go to the store page (WebSocket) and the backend
+- restarts the bridge 2 s after a crash and logs `bridge exited (…) — restarting in 2s`
+- stops the bridge and caffeinate on **Ctrl+C**
+
+Settings come from `reader/.env`. `TAP_OUTPUT` is always forced to `both`, and the terminal ID comes from
+`TEST_TERMINAL_ID` in the root `.env`.
+
+### 3. Check the banner
+
+A healthy start looks like this:
+
+```
+────────────────────────────────────────────────────────
+  Reclaimed hardware demo
+────────────────────────────────────────────────────────
+  Reader       ACS ACR1252 Dual Reader PICC
+  Terminal ID  TERM-DEV-001
+  Backend      http://localhost:4000  (healthy)
+  Output       both  (store page ws://127.0.0.1:8787 + backend)
+  Demo card    049315A93F0289
+  Bridge ID    bridge-macbook
+
+  Press f for fake tap · Ctrl+C to stop
+────────────────────────────────────────────────────────
+
+[demo 21:36:43] caffeinate -dimsu running (pid 76234)
+[demo 21:36:43] bridge started (pid 76235)
+```
+
+Then wait for the `bridge_ready` and `reader_connected` log lines. A tap logs `tap_sent` with the
+backend's outcome.
+
+If it stops with an error instead:
+
+| Message | Fix |
+|---|---|
+| `NFC reader not detected` | Replug the reader, wait 3 s, run again |
+| `Backend at … is not reachable` | Start the API: `npm run dev:api` |
+| `The reader is already in use by …` | Another bridge or `reader:diagnose` is running. Ctrl+C it first |
+| `reader/.env is invalid` | Fix the named variable (see `reader/.env.example`) |
+
+### 4. If the reader dies mid-demo
+
+**Press `f`** in the bridge window. This sends a fake tap of `DEMO_CARD_UID` (card A) through the same path
+as a real tap, so the checkout completes as normal. Keep going and fix the hardware afterwards.
+
+- Unplugging and replugging the reader is picked up automatically, with no restart needed.
+- If the bridge process itself crashes, it restarts within 2 s.
+- `f` needs `DEMO_CARD_UID` set to the **enrolled** card's UID, or the fake tap is declined as not enrolled.
+
+### 5. If card A is lost or broken
+
+Use the spare, card B. Run the [Swap demo card](#swap-demo-card) command, then set
+`DEMO_CARD_UID=04A397A23F0289` in `reader/.env` and restart `npm run demo:hardware` so the fake tap matches.
+
+## Swap demo card
+
+Moves the demo account's enrolled Reclaimed card from card A (`049315A93F0289`) to the spare,
+card B (`04A397A23F0289`). The card keeps its ID, owner, status and funding accounts; only the UID
+fingerprint changes. **Not run yet.** Run it from the repo root. The card ID is the demo card enrolled 2026-10-10 (`RC-H6ZY-E6PB`, owner `iamtheking3000@gmail.com`); re-check it if the card is ever re-enrolled:
+
+```sh
+(set -a; . ./.env; psql "${DATABASE_URL/&uselibpqcompat=true/}" -v ON_ERROR_STOP=1 -v pepper="$NFC_UID_PEPPER" -v card_id="2143ea9b-eaf0-4a3c-9cc3-943615f37464") <<'SQL'
+update public.reclaimed_cards
+   set uid_fingerprint = encode(extensions.hmac('04A397A23F0289', :'pepper', 'sha256'), 'hex'),
+       uid_masked      = '••••0289'
+ where id = :'card_id' and status <> 'REVOKED';
+SQL
+```
+
+- The fingerprint must match the API's `uidFingerprint` (`apps/api/src/lib/crypto.ts`): hex HMAC-SHA256 of
+  the uppercase UID, keyed with `NFC_UID_PEPPER`. If the API runs with a different pepper (for example a
+  deployed backend), use that one, or the card will show as `UNKNOWN_CARD`.
+- Both cards end in `0289`, so the masked UID (`••••0289`) is the same before and after the swap.
+- Afterwards set `DEMO_CARD_UID=04A397A23F0289` in `reader/.env` so the fake tap matches.
+- `${DATABASE_URL/&uselibpqcompat=true/}` drops a node-postgres-only URL parameter that `psql` rejects
+  (`invalid URI query parameter`).
+- Uses Supabase's `pgcrypto` in the `extensions` schema. Expect `UPDATE 1`; `UPDATE 0` means the ID is wrong
+  or the card is revoked.
+
 ---
 
 ## Contradictions to resolve
@@ -129,8 +231,8 @@ and the dummy AID is never used.
 | C1 | PC/SC library | `pcsc-mini` 0.1.3; says `nfc-pcsc` is "Not used" | Uses `nfc-pcsc` 0.8.1 |
 | C2 | Node version | Node 22.20; root `engines` is `>=22.12.0` | Node 24.14.0 pinned in `.nvmrc`; `reader/package.json` requires `>=24`. `.nvmrc` was not copied to this branch |
 | C3 | Physical verification | "has **not** been verified yet" | Tests 1–6 PASS on the real reader (see [hardware-test-results.md](hardware-test-results.md)) |
-| C4 | Root commands | `dev:hardware`, `hardware:diagnose`, `hardware:test` run `apps/hardware-bridge` | Same three names run `reader/` |
-| C5 | Backend call | HMAC-signed POST to `http://localhost:4000/api/v1/hardware/tap-events` | Unsigned POST to `BACKEND_URL` + `TAP_PATH` (default `/hardware/taps`); tests 7–10 used `http://localhost:3000` |
+| C4 | Root commands | `dev:hardware`, `hardware:diagnose`, `hardware:test` run `apps/hardware-bridge` | **Resolved:** `reader/` now runs as `dev:reader`, `reader:diagnose`, `reader:test` |
+| C5 | Backend call | HMAC-signed POST to `http://localhost:4000/api/v1/hardware/tap-events` | **Resolved:** `reader/` now signs with the shared `signRequest` and POSTs to `BRIDGE_API_URL` + `/api/v1/hardware/tap-events` |
 | C6 | UID privacy | Bridge logs only masked UIDs; API never stores the raw UID | Logs and this doc show full UIDs |
 | C7 | Test results file | `hardware:test` rewrites `docs/hardware-test-results.md` | `reader/`'s `hardware-test` also rewrites `docs/hardware-test-results.md`. Either runner overwrites this combined file |
 | C8 | macOS version | "macOS 25.6" (in hardware-test-results.md) | macOS 26.6.2 (25G83). Build 25G83 is Darwin 25, so these may be the same machine |
