@@ -98,30 +98,30 @@ export default function Card() {
       ) : (
         // The card lands first, then the details.
         <Enter kind="fade" delay={duration.stagger}>
-        <View style={{ gap: theme.space.lg }}>
-          {perks(manualName).map((p) => (
-            <View key={p.title} style={{ flexDirection: 'row', gap: theme.space.md, alignItems: 'center' }}>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: theme.radius.full,
-                  backgroundColor: theme.color.surface.action,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Icon name={p.icon} size={18} tone="on-action" />
+          <View style={{ gap: theme.space.lg }}>
+            {perks(manualName).map((p) => (
+              <View key={p.title} style={{ flexDirection: 'row', gap: theme.space.md, alignItems: 'center' }}>
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: theme.radius.full,
+                    backgroundColor: theme.color.surface.action,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Icon name={p.icon} size={18} tone="on-action" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: 'JBMono-Medium' }}>{p.title}</Text>
+                  <Text variant="body-sm" tone="secondary">
+                    {p.body}
+                  </Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: 'JBMono-Medium' }}>{p.title}</Text>
-                <Text variant="body-sm" tone="secondary">
-                  {p.body}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
         </Enter>
       )}
     </FlowScreen>

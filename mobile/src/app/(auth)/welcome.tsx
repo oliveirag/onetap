@@ -36,11 +36,16 @@ export default function Welcome() {
       </Animated.View>
 
       <View style={{ paddingVertical: theme.space['2xl'], paddingHorizontal: theme.space.sm }}>
-        <Animated.View entering={enter(0)} style={{ position: 'absolute', left: theme.space.xl, right: -theme.space.lg, top: theme.space.md, transform: [{ rotate: '7deg' }] }}>
-          <OneTapCard last4="4821" side="back" />
+        {/* The tilt lives on an inner View: the entering animation owns the outer transform. */}
+        <Animated.View entering={enter(0)} style={{ position: 'absolute', left: theme.space.xl, right: -theme.space.lg, top: theme.space.md }}>
+          <View style={{ transform: [{ rotate: '7deg' }] }}>
+            <OneTapCard last4="4821" side="back" />
+          </View>
         </Animated.View>
-        <Animated.View entering={enter(duration.stagger)} style={{ transform: [{ rotate: '-6deg' }], marginTop: theme.space['3xl'] }}>
-          <OneTapCard last4="4821" status="Best card, automatically" auto />
+        <Animated.View entering={enter(duration.stagger)} style={{ marginTop: theme.space['3xl'] }}>
+          <View style={{ transform: [{ rotate: '-6deg' }] }}>
+            <OneTapCard last4="4821" status="Best card, automatically" auto />
+          </View>
         </Animated.View>
       </View>
 
