@@ -48,4 +48,4 @@ All simulated money is `bigint` cents. Plaid-reported balances (`financial_accou
 
 ## Repository layout
 
-See the root [README](../README.md). Migrations live in `packages/database/supabase/migrations`. The seed lives in `packages/database/supabase/seed.sql`.
+See the [PRD](../onetapPRD.md). Migrations live in `packages/database/supabase/migrations`. The seed lives in `packages/database/supabase/seed.sql`.
