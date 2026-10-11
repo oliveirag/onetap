@@ -51,7 +51,7 @@ export default function Connect() {
       {connect.data ? (
         <View style={{ gap: theme.space.sm }}>
           <Text variant="h4" accessibilityRole="header">
-            {connect.data.length} cards found
+            {connect.data.length} {connect.data.length === 1 ? 'card' : 'cards'} found
           </Text>
           {connect.data.map((c) => (
             <View

@@ -25,7 +25,8 @@ export function TransactionRow({ tx, cardName, onPress }: { tx: Tx; cardName: st
           width: 32,
           height: 32,
           borderRadius: theme.radius.md,
-          backgroundColor: theme.color.surface.default,
+          // Rows sit inside a surface.default panel on Home: one step up, like RoutingRules' tiles.
+          backgroundColor: theme.color.surface.raised,
           alignItems: 'center',
           justifyContent: 'center',
         }}

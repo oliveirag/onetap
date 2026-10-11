@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 
 import { useAnswers } from '@/components/onboarding/AnswersProvider';
 import { CheckBox } from '@/components/onboarding/Choice';
@@ -19,6 +19,10 @@ const PICKABLE: CategoryId[] = ['dining', 'groceries', 'gas', 'streaming', 'trav
 export default function Spend() {
   const { theme } = useTheme();
   const { answers, update } = useAnswers();
+  // Two tiles per row that end on the page margin (a percentage plus a fixed gap overshoots or falls short).
+  // Floored so rounding never pushes the second tile onto its own row.
+  const { width } = useWindowDimensions();
+  const tile = Math.floor((width - theme.pageMargin * 2 - theme.space.sm) / 2);
   const toggle = (id: CategoryId) =>
     update({ spend: answers.spend.includes(id) ? answers.spend.filter((s) => s !== id) : [...answers.spend, id] });
 
@@ -41,7 +45,7 @@ export default function Spend() {
               hitSlop={0}
               onPress={() => (on || answers.spend.length < 3 ? toggle(id) : update({ spend: [...answers.spend.slice(1), id] }))}
               style={{
-                width: '48.5%',
+                width: tile,
                 aspectRatio: 1.3,
                 padding: theme.space.md,
                 borderRadius: theme.radius.lg,

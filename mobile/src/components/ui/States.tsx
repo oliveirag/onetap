@@ -8,21 +8,23 @@ import { Text } from './Text';
 
 // Static placeholder at the final size so nothing jumps when data lands. No shimmer.
 // `aspectRatio` sizes it like a ratio-bound view (the OneTap card) instead of a fixed height.
+// `inPanel`: on a surface.default panel the placeholder steps up to raised, or it would vanish.
 export function Skeleton({
   height,
   width = '100%',
   radius,
   aspectRatio,
+  inPanel = false,
 }: {
   height?: number;
   width?: DimensionValue;
   radius?: number;
   aspectRatio?: number;
+  inPanel?: boolean;
 }) {
   const { theme } = useTheme();
-  return (
-    <View style={{ height, width, aspectRatio, borderRadius: radius ?? theme.radius.md, backgroundColor: theme.color.surface.default }} />
-  );
+  const backgroundColor = inPanel ? theme.color.surface.raised : theme.color.surface.default;
+  return <View style={{ height, width, aspectRatio, borderRadius: radius ?? theme.radius.md, backgroundColor }} />;
 }
 
 export function Empty({ title, body, action }: { title: string; body: string; action?: ReactNode }) {

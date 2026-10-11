@@ -70,7 +70,7 @@ export default function Home() {
             <View style={{ marginTop: theme.space.sm }}>
               {[0, 1, 2, 3, 4].map((i) => (
                 <View key={i} style={{ paddingVertical: theme.space.sm }}>
-                  <Skeleton height={44} />
+                  <Skeleton height={44} inPanel />
                 </View>
               ))}
             </View>
@@ -109,8 +109,8 @@ function MonthSummary({ spending }: { spending: ReturnType<typeof useSpending> }
   if (spending.isLoading) {
     return (
       <View style={{ flexDirection: 'row', gap: theme.space.lg }}>
-        <Skeleton height={48} width="45%" />
-        <Skeleton height={48} width="45%" />
+        <Skeleton height={48} width="45%" inPanel />
+        <Skeleton height={48} width="45%" inPanel />
       </View>
     );
   }
