@@ -15,9 +15,10 @@ const WHAT_YOU_GET: { icon: IconName; text: string }[] = [
 ];
 
 // The fork: the questionnaire is opt-in. Skip goes straight to the account.
+// Either way this is a new onboarding, so answers left by an earlier, unfinished run are cleared.
 export default function Personalize() {
   const { theme } = useTheme();
-  const { setSkipped } = useAnswers();
+  const { clear, setSkipped } = useAnswers();
 
   return (
     <FlowScreen
@@ -28,7 +29,7 @@ export default function Personalize() {
           <Button
             label="Personalize"
             onPress={() => {
-              setSkipped(false);
+              clear();
               router.push('/goal');
             }}
           />
@@ -36,6 +37,7 @@ export default function Personalize() {
             variant="ghost"
             label="Skip for now"
             onPress={() => {
+              clear();
               setSkipped(true);
               router.push('/name');
             }}

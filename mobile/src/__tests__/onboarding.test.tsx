@@ -128,6 +128,26 @@ it('resumes setup at the saved step after logging in again', async () => {
   await screen.findByText('Are these your cards?');
 });
 
+it('starts every questionnaire with nothing selected, even after an unfinished run', async () => {
+  await AsyncStorage.setItem(
+    'onetap.onboarding-answers',
+    JSON.stringify({ goal: 'guess', pains: ['forget'], spend: ['dining'] }),
+  );
+  renderRouter('./src/app', { initialUrl: '/' });
+  await screen.findByText(/Your best card, every time/);
+  press('Get started');
+  await screen.findByText('Want a plan made for you?');
+  press('Personalize');
+
+  await screen.findByText('What do you want from your cards?');
+  expect(screen.getAllByRole('radio').some((r) => r.props.accessibilityState?.selected)).toBe(false);
+  fireEvent.press(screen.getByRole('radio', { name: 'Stop guessing which card to use' }));
+  press('Continue');
+
+  await screen.findByText('What gets in the way?');
+  expect(screen.getAllByRole('checkbox').some((c) => c.props.accessibilityState?.checked)).toBe(false);
+});
+
 it('skips the questionnaire straight to the account', async () => {
   renderRouter('./src/app', { initialUrl: '/' });
   await screen.findByText(/Your best card, every time/);
