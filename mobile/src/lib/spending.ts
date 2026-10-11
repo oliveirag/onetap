@@ -1,5 +1,4 @@
 import { CATEGORIES } from './categories';
-import { formatCents } from './money';
 import type { CategoryId, TransactionRow, UserCardRow } from './types';
 
 // One sentence about this month, from a fixed template (never Claude), so its numbers are the
@@ -94,14 +93,14 @@ export function insight(month: TransactionRow[]): Insight | null {
     const r = rows[0];
     return {
       rule: 'one_category', category: r.id, percent: 100, amountCents: r.extra, isDemoHistory,
-      sentence: `All ${label(r.id).toLowerCase()} this month, ${formatCents(r.extra)} reclaimed.`,
+      sentence: `All ${label(r.id).toLowerCase()} this month.`,
     };
   }
   const top = rows.filter((r) => r.extra > 0).sort((a, b) => b.extra - a.extra || b.spend - a.spend)[0];
   if (top) {
     return {
       rule: 'top_reclaimed', category: top.id, percent: pct(top.spend, total), amountCents: top.extra, isDemoHistory,
-      sentence: `${label(top.id)}: ${pct(top.spend, total)}% of OneTap spend, ${formatCents(top.extra)} reclaimed.`,
+      sentence: `${label(top.id)}: ${pct(top.spend, total)}% of OneTap spend.`,
     };
   }
   const big = [...rows].sort((a, b) => b.spend - a.spend || b.extra - a.extra)[0];

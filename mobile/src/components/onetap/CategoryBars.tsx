@@ -3,14 +3,15 @@ import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { formatCents } from '@/lib/money';
+import { CHART_DIM, chartColor } from '@/theme/chart';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type Row = { id: string; label: string; cents: number };
 
-// Single-series horizontal bars: one neutral fill, label left and value right on the same row,
-// largest first, no legend. Every value is printed, so the list doubles as the table view.
-// With `onSelect`, rows are the donut's legend: tapping one makes it active, and the active
-// bar takes the primary ink, matching its arc.
+// Horizontal bars, label left and value right on the same row, largest first, no legend. Every
+// value is printed, so the list doubles as the table view. Alone, they are one series in the
+// first chart blue. With `onSelect`, rows are the donut's legend: each bar takes its arc's blue
+// (same rank, same color), and the bars other than the active one recede like their arcs.
 export function CategoryBars({
   title,
   rows,
@@ -24,7 +25,7 @@ export function CategoryBars({
   activeId?: string;
   onSelect?: (id: string) => void;
 }) {
-  const { theme } = useTheme();
+  const { theme, scheme } = useTheme();
   const max = Math.max(1, ...rows.map((r) => r.cents));
   const total = rows.reduce((sum, r) => sum + r.cents, 0) || 1;
 
@@ -34,7 +35,7 @@ export function CategoryBars({
         {title}
       </Text>
       {chart}
-      {rows.map((r) => {
+      {rows.map((r, i) => {
         const selected = onSelect ? r.id === activeId : false;
         const label = `${r.label}, ${formatCents(r.cents)}, ${Math.round((r.cents / total) * 100)} percent`;
         const body = (
@@ -57,7 +58,8 @@ export function CategoryBars({
               style={{
                 height: 8,
                 width: `${Math.max(2, (r.cents / max) * 100)}%`,
-                backgroundColor: selected ? theme.color.icon.primary : theme.color.icon.secondary,
+                backgroundColor: chartColor(scheme, onSelect ? i : 0),
+                opacity: onSelect && !selected ? CHART_DIM : 1,
                 borderTopRightRadius: 4,
                 borderBottomRightRadius: 4,
               }}

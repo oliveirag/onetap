@@ -6,6 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 import { RollingNumber } from '@/components/ui/RollingNumber';
 import { Text } from '@/components/ui/Text';
 import { formatCents } from '@/lib/money';
+import { CHART_DIM, chartColor } from '@/theme/chart';
 import { duration, ease } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -48,7 +49,7 @@ export function segmentsFor(rows: Row[]): Segment[] {
 
 // One arc. Start and sweep tween on the UI thread when the data changes (250ms in-out),
 // so shares visibly shift when a purchase lands. Reduced motion jumps straight there.
-function Arc({ start, sweep, color }: { start: number; sweep: number; color: string }) {
+function Arc({ start, sweep, color, dim }: { start: number; sweep: number; color: string; dim: boolean }) {
   const { reduceMotion } = useTheme();
   const a = useSharedValue(start);
   const s = useSharedValue(sweep);
@@ -60,14 +61,15 @@ function Arc({ start, sweep, color }: { start: number; sweep: number; color: str
   }, [start, sweep, reduceMotion, a, s]);
 
   const props = useAnimatedProps(() => ({ d: arcPath(a.get(), s.get()) }));
-  return <AnimatedPath animatedProps={props} stroke={color} strokeWidth={THICKNESS} fill="none" />;
+  return <AnimatedPath animatedProps={props} stroke={color} strokeOpacity={dim ? CHART_DIM : 1} strokeWidth={THICKNESS} fill="none" />;
 }
 
-// Share of spend by category (Arc's donut, achromatic). Every arc is one neutral ink; the active
-// one is primary, so identity never rests on hue. The center rolls to the active category.
+// Share of spend by category (Arc's donut). Each arc takes the chart blue for its rank, matching
+// its bar below; the others recede while one is active, so selection never rests on hue alone.
+// The center rolls to the active category.
 // The ring is decorative for VoiceOver: the bars below are the legend and the table.
 export function SpendDonut({ rows, activeId, onSelect }: { rows: Row[]; activeId: string; onSelect: (id: string) => void }) {
-  const { theme } = useTheme();
+  const { theme, scheme } = useTheme();
   const segments = segmentsFor(rows);
   const total = rows.reduce((sum, r) => sum + r.cents, 0);
   const active = rows.find((r) => r.id === activeId) ?? rows[0];
@@ -96,13 +98,8 @@ export function SpendDonut({ rows, activeId, onSelect }: { rows: Row[]; activeId
         style={{ width: SIZE, height: SIZE }}
       >
         <Svg width={SIZE} height={SIZE}>
-          {segments.map((seg) => (
-            <Arc
-              key={seg.id}
-              start={seg.start}
-              sweep={seg.sweep}
-              color={seg.id === active.id ? theme.color.icon.primary : theme.color.icon.tertiary}
-            />
+          {segments.map((seg, i) => (
+            <Arc key={seg.id} start={seg.start} sweep={seg.sweep} color={chartColor(scheme, i)} dim={seg.id !== active.id} />
           ))}
         </Svg>
         <View pointerEvents="none" style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: theme.space.xs }}>
