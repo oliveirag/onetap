@@ -18,7 +18,9 @@ export function TransactionListener({ userId }: { userId: string | null }) {
   const primed = useRef(false);
   const pathname = usePathname();
   const path = useRef(pathname);
-  path.current = pathname;
+  useEffect(() => {
+    path.current = pathname;
+  }, [pathname]);
 
   const open = useCallback((tx: TransactionRow) => {
     if (!shouldOpenSheet(tx, seen.current)) return;

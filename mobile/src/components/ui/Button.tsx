@@ -8,6 +8,8 @@ import { Text } from './Text';
 type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 
 // DS Button. One primary per view. No disabled state: keep it enabled and explain on press.
+// `ready={false}` dims a primary until its form is complete (after Revolut's Continue), so the
+// next step is visible but quiet. It still takes the press, and the screen says what's missing.
 export function Button({
   label,
   onPress,
@@ -15,6 +17,7 @@ export function Button({
   size = 'md',
   icon,
   loading = false,
+  ready = true,
 }: {
   label: string;
   onPress: () => void;
@@ -22,12 +25,14 @@ export function Button({
   size?: 'md' | 'sm';
   icon?: IconName;
   loading?: boolean;
+  ready?: boolean;
 }) {
   const { theme } = useTheme();
   const c = theme.color;
-  const bg = { primary: c.surface.action, secondary: c.surface.default, ghost: 'transparent', destructive: c.surface.error }[variant];
-  const border = { primary: c.border.action, secondary: c.border.strong, ghost: 'transparent', destructive: c.surface.error }[variant];
-  const fg = variant === 'primary' ? c.text['on-action'] : variant === 'destructive' ? c.text['on-error'] : c.text.primary;
+  const dim = variant === 'primary' && !ready;
+  const bg = dim ? c.surface.default : { primary: c.surface.action, secondary: c.surface.default, ghost: 'transparent', destructive: c.surface.error }[variant];
+  const border = dim ? c.border.default : { primary: c.border.action, secondary: c.border.strong, ghost: 'transparent', destructive: c.surface.error }[variant];
+  const fg = dim ? c.text.secondary : variant === 'primary' ? c.text['on-action'] : variant === 'destructive' ? c.text['on-error'] : c.text.primary;
 
   return (
     <PressableScale

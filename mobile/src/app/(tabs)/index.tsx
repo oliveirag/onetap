@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { ModeControl } from '@/components/onetap/ModeControl';
-import { OneTapCard } from '@/components/onetap/OneTapCard';
+import { CARD_RATIO, OneTapCard } from '@/components/onetap/OneTapCard';
 import { TransactionRow } from '@/components/onetap/TransactionRow';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Money } from '@/components/ui/Money';
@@ -42,7 +42,7 @@ export default function Home() {
       {card.data ? (
         <OneTapCard last4={card.data.last4} status={status} auto={auto && card.data.state !== 'paused'} onLongPress={devTap} />
       ) : (
-        <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />
+        <Skeleton aspectRatio={CARD_RATIO} radius={theme.radius.xl} />
       )}
 
       <ModeControl />

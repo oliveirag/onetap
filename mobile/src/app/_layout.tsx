@@ -19,6 +19,8 @@ export default function RootLayout() {
     'JBMono-Regular': require('../../assets/fonts/JetBrainsMonoNL-Regular.ttf'),
     'JBMono-Medium': require('../../assets/fonts/JetBrainsMonoNL-Medium.ttf'),
     'JBMono-Bold': require('../../assets/fonts/JetBrainsMonoNL-Bold.ttf'),
+    // Logo wordmark only (One Tap identity). UI text stays JetBrains Mono.
+    'Geist-SemiBold': require('../../assets/fonts/Geist-SemiBold.ttf'),
   });
 
   if (!fontsLoaded) return null;

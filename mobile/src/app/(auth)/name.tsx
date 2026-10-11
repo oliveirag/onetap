@@ -32,7 +32,7 @@ export default function Name() {
       title="Tell us about you"
       subtitle="Create a free account to keep your plan. Start with your name."
       progress={progressOf('name', skipped)}
-      footer={<Button label="Next" onPress={next} />}
+      footer={<Button label="Next" ready={!nameError(first, 'first') && !nameError(last, 'last')} onPress={next} />}
     >
       <View style={{ gap: theme.space.lg }}>
         <Field
