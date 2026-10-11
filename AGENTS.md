@@ -59,7 +59,7 @@ Agree these before building against them; every workstream uses fake data that m
   module means a new EAS build, so batch native dependency changes.
 - `ios/` and `android/` are generated (Continuous Native Generation) and gitignored. Configure
   native behavior through `app.json` / `app.config.ts` and config plugins, not by editing them.
-- Tabs: Home, Spending, Assistant, Cards. The routing result must appear on any tab when a new
+- Tabs: Home, Dashboard, Cards (the Assistant was removed). The routing result must appear on any tab when a new
   transaction arrives via Supabase Realtime, with a haptic, and refetch on reconnect.
 - Visual system comes from Gui's design system (achromatic, dark-first, JetBrains Mono). The store
   page uses the same tokens so both screens read as one product.
@@ -67,7 +67,12 @@ Agree these before building against them; every workstream uses fake data that m
 
 ## Working here
 
-- No build system exists yet at the root. Once each part is scaffolded, document its commands here.
+- Layout: `mobile/` (the app, own install), `apps/api`, `apps/hardware-bridge`, `apps/terminal-simulator`,
+  `packages/*` (npm workspaces), `reader/` (Amer's reader bridge, own install), `shared/contracts.ts`.
+  How the app maps onto the backend: `docs/onetap-app.md`. Backend setup: `docs/setup.md`.
+- Commands (root): `npm install`, `npm run dev` (API, terminal, bridge), `npm run dev:mobile`,
+  `npm run db:start|db:migrate|db:seed`, `npm run lint`, `npm run typecheck`, `npm test`,
+  `npm run smoke:onetap` (end to end against a running local stack).
 - Don't commit or push unless asked.
 - Git workflow for this project only: for each authorized change set, create a new feature branch,
   commit on that branch, push it, and open a pull request against the repository's default branch

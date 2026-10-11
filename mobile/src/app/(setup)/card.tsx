@@ -8,6 +8,7 @@ import { Enter } from '@/components/ui/Enter';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
+import { apiMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useCreateOneTapCard, useProfile, useUserCards } from '@/lib/queries';
 import { backFrom, setupProgress } from '@/lib/setup';
@@ -44,7 +45,7 @@ export default function Card() {
       onBack={() => backFrom('card')}
       footer={
         <>
-          <FormError text={create.error ? "Your card wasn't created. Check your connection and try again." : null} />
+          <FormError text={create.error ? (apiMessage(create.error) ?? "Your card wasn't created. Check your connection and try again.") : null} />
           {card ? (
             // Writing 'done' flips the root gate: setup unmounts and Home appears.
             <Button label="Go to home" onPress={() => setStep('done')} />

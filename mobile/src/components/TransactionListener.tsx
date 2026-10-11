@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { router, usePathname } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 
+import { isRouted, toTransaction, type DbPayment } from '@/lib/backend';
 import { haptics } from '@/lib/haptics';
 import { mockEmitter } from '@/lib/mocks/emitter';
 import { keys, useTransactions } from '@/lib/queries';
@@ -52,11 +53,13 @@ export function TransactionListener({ userId }: { userId: string | null }) {
 
     if (USE_MOCKS) return mockEmitter.on(handle);
 
+    // The backend writes the routing decision onto the checkout's payment row in one UPDATE.
     const channel = supabase
       .channel(`tx-${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` }, (payload) =>
-        handle(payload.new as TransactionRow),
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payment_transactions', filter: `user_id=eq.${userId}` }, (payload) => {
+        const row = payload.new as DbPayment;
+        if (isRouted(row)) handle(toTransaction(row));
+      })
       .subscribe((status) => {
         // Catch rows that landed while the socket was down.
         if (status === 'SUBSCRIBED') qc.invalidateQueries({ queryKey: keys.transactions });

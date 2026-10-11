@@ -1,11 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
-import Assistant from '@/app/(tabs)/assistant';
 import { segmentsFor } from '@/components/onetap/SpendDonut';
 import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { RollingNumber } from '@/components/ui/RollingNumber';
-import { api } from '@/lib/api';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 function wrap(ui: React.ReactElement) {
@@ -93,38 +91,3 @@ describe('ConfirmMorph', () => {
   });
 });
 
-describe('Assistant', () => {
-  afterEach(() => jest.restoreAllMocks());
-
-  it('offers prompts per mode and answers a tapped one', async () => {
-    jest.spyOn(api, 'chat').mockResolvedValue({ reply: 'You spent $412.00 this month.', threadId: 't1' });
-    wrap(<Assistant />);
-
-    expect(screen.getByRole('button', { name: 'Fly to Canada' })).toBeTruthy();
-    fireEvent.press(screen.getByRole('tab', { name: 'Spending' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Where did my money go this month' }));
-
-    expect(screen.getByLabelText('You: Where did my money go this month')).toBeTruthy();
-    expect(await screen.findByLabelText('Assistant: You spent $412.00 this month.')).toBeTruthy();
-    expect(api.chat).toHaveBeenCalledWith({ mode: 'relay', message: 'Where did my money go this month', threadId: undefined });
-
-    // Each mode keeps its own thread.
-    fireEvent.press(screen.getByRole('tab', { name: 'Points planner' }));
-    expect(screen.getByRole('button', { name: 'Fly to Canada' })).toBeTruthy();
-  });
-
-  it('shows the error and retries without repeating the question', async () => {
-    jest
-      .spyOn(api, 'chat')
-      .mockRejectedValueOnce(new Error('down'))
-      .mockResolvedValueOnce({ reply: 'Aeroplan has it for 12,500 points.', threadId: 't2' });
-    wrap(<Assistant />);
-
-    fireEvent.press(screen.getByRole('button', { name: 'Fly to Canada' }));
-    expect(await screen.findByText('The assistant did not respond.')).toBeTruthy();
-
-    fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByLabelText('Assistant: Aeroplan has it for 12,500 points.')).toBeTruthy();
-    expect(screen.getAllByLabelText('You: Fly to Canada')).toHaveLength(1);
-  });
-});

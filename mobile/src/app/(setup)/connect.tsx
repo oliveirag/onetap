@@ -8,17 +8,20 @@ import { Button } from '@/components/ui/Button';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Money } from '@/components/ui/Money';
 import { Text } from '@/components/ui/Text';
+import { apiMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { useConnectTestAccounts } from '@/lib/queries';
+import { LinkCanceled } from '@/lib/plaid';
+import { useConnectCards } from '@/lib/queries';
 import { setupProgress } from '@/lib/setup';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// Step 1 of 4: connect cards. Until the backend's Plaid endpoints are on main this uses the
-// PRD F2 fallback (sandbox test accounts) and lists every account returned.
+// Step 1 of 4: connect cards through Plaid Link, then list every credit card the bank returned.
 export default function Connect() {
   const { theme } = useTheme();
   const { session, setStep, signOut } = useAuth();
-  const connect = useConnectTestAccounts();
+  const connect = useConnectCards();
+  // Closing Plaid Link isn't a failure: just offer the button again.
+  const failed = connect.error && !(connect.error instanceof LinkCanceled) ? connect.error : null;
   const first = session?.fullName?.split(' ')[0];
 
   const next = async () => {
@@ -34,7 +37,7 @@ export default function Connect() {
       back={false}
       footer={
         <>
-          <FormError text={connect.error ? "Your cards didn't connect. Check your connection and try again." : null} />
+          <FormError text={failed ? (apiMessage(failed) ?? "Your cards didn't connect. Check your connection and try again.") : null} />
           {connect.data ? (
             <Button label="Continue" onPress={next} />
           ) : (

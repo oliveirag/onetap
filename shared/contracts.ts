@@ -112,6 +112,20 @@ export interface OneTapCardRow {
   id: string;
   last4: string;
   state: "open" | "paused";
+  physical_linked?: boolean;     // the physical NFC card is attached to this (digital) card
+}
+
+// card_spending view: one purchase on a credit card the user connected through Plaid.
+export interface CardSpendingRow {
+  id: string;
+  financial_account_id: string;
+  account_name: string;
+  mask: string | null;
+  merchant: string;
+  amount_cents: number;          // positive = spent
+  date: string;                  // YYYY-MM-DD, as Plaid reports it
+  pending: boolean;
+  category_id: CategoryId;
 }
 
 // ---------- Chat (app -> backend, camelCase like the other HTTP payloads) ----------

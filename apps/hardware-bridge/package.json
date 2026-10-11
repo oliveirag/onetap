@@ -1,0 +1,17 @@
+{
+  "name": "@reclaimed/hardware-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "reclaimed-bridge": "dist/index.js" },
+  "scripts": {
+    "dev": "tsx --env-file-if-exists=../../.env src/index.ts",
+    "start": "node --env-file-if-exists=../../.env dist/index.js",
+    "diagnose": "tsx --env-file-if-exists=../../.env src/cli/diagnose.ts",
+    "physical-test": "tsx --env-file-if-exists=../../.env src/cli/physical-test.ts",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": { "@reclaimed/shared": "*" },
+  "optionalDependencies": { "pcsc-mini": "^0.1.3" }
+}
