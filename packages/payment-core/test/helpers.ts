@@ -10,16 +10,19 @@ import {
   PaymentLifecycleService,
   TransactionLedger,
   newCardDisplayId,
+  type FundingSelector,
 } from '../src/index.js';
 
-export async function setup(opts: { processor?: MockPaymentProcessor; timeoutMs?: number; checkoutTtlMs?: number } = {}) {
+export async function setup(
+  opts: { processor?: MockPaymentProcessor; timeoutMs?: number; checkoutTtlMs?: number; selector?: FundingSelector } = {},
+) {
   const db = await createTestDatabase();
   const processor = opts.processor ?? new MockPaymentProcessor();
   const funding = new MockFundingProvider();
   const ledger = new TransactionLedger();
   const auth = new AuthorizationService(
     db,
-    { funding, selector: new ConfiguredFundingSelector(), processor, ledger },
+    { funding, selector: opts.selector ?? new ConfiguredFundingSelector(), processor, ledger },
     { authorizationTimeoutMs: opts.timeoutMs ?? 2000 },
   );
   const lifecycle = new PaymentLifecycleService(db, { funding, processor, ledger }, { checkoutTtlMs: opts.checkoutTtlMs ?? 60_000 });

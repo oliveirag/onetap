@@ -12,23 +12,45 @@ export interface FundingSelectionContext {
   amountCents: number;
 }
 
+/** Routing result written onto payment_transactions with the final state (payment_routing migration). */
+export interface RoutingColumns {
+  category_id: string;
+  funding_account_last4: string | null;
+  routing_mode: 'auto' | 'manual';
+  decision_reason: 'best_rate' | 'tie_priority' | 'manual' | 'fallback_default';
+  multiplier: number;
+  points_earned: number;
+  reward_value_cents: number;
+  baseline_value_cents: number;
+  best_value_cents: number;
+  /** Losing options only. */
+  alternatives: { funding_account_id: string; name: string; last4: string | null; multiplier: number; value_cents: number }[];
+}
+
+/** Describes the decision once the engine knows which candidate actually funded the purchase. */
+export interface RoutingPlan {
+  describe(fundedAccountId: string): RoutingColumns | null;
+}
+
+export interface RoutedSelection {
+  candidates: string[];
+  plan: RoutingPlan | null;
+}
+
 /**
  * Chooses the ORDERED list of funding sources the authorization engine will try.
- *
- * ┌──────────────────────────────────────────────────────────────────────────┐
- * │ PHASE 2 INTEGRATION POINT. A future RewardsOptimizedFundingSelector will  │
- * │ implement this interface using merchant/MCC/amount + verified reward     │
- * │ rules. Phase 1 deliberately ships ONLY deterministic, user-configured    │
- * │ ordering — no rewards logic of any kind.                                 │
- * └──────────────────────────────────────────────────────────────────────────┘
+ * Selectors that implement selectRoute also explain their choice; the engine stores it with the result.
+ * Implementations: ConfiguredFundingSelector (user-configured order) and CategoryRoutingSelector
+ * (category-based rewards routing, category-routing.ts).
  */
 export interface FundingSelector {
   readonly name: string;
   selectCandidates(db: Queryable, ctx: FundingSelectionContext): Promise<string[]>;
+  selectRoute?(db: Queryable, ctx: FundingSelectionContext): Promise<RoutedSelection>;
 }
 
 /**
- * Phase 1 selector:
+ * Configured-order selector:
  *  1. The card's configured primary mock account; if none is configured, the
  *     user's active mock account with the lowest priority number (the default).
  *  2. The configured secondary account, only when fallback is enabled.

@@ -6,12 +6,14 @@ import { PG_PARSERS } from '../src/client.js';
 import { upsertDevTerminal } from '../src/terminal-seed.js';
 
 describe('migrations and seed', () => {
-  it('applies every migration and seeds exactly 10 card products', async () => {
+  it('applies every migration and seeds exactly 10 card products plus the generic Other card', async () => {
     const db = await createTestDatabase();
     const { rows } = await db.query<{ product_slug: string; card_network: string }>(
-      'select product_slug, card_network from card_products order by product_slug',
+      'select product_slug, card_network from card_products where not is_generic order by product_slug',
     );
     expect(rows).toHaveLength(10);
+    const generic = await db.query<{ product_slug: string }>('select product_slug from card_products where is_generic');
+    expect(generic.rows).toEqual([{ product_slug: 'other-card' }]);
     expect(rows.find((r) => r.product_slug === 'citi-double-cash')?.card_network).toBe('MASTERCARD');
     expect(rows.find((r) => r.product_slug === 'amex-gold')?.card_network).toBe('AMEX');
     await db.close();
@@ -26,11 +28,11 @@ describe('migrations and seed', () => {
     expect(await applyMigrations(db, exec)).toEqual([]);
     await applySeed(db, exec);
     const before = await db.query<{ id: string; product_slug: string }>('select id, product_slug from card_products order by 2');
-    expect(before.rows).toHaveLength(10);
+    expect(before.rows).toHaveLength(11);
     await applySeed(db, exec);
     await applySeed(db, exec);
     const after = await db.query<{ id: string; product_slug: string }>('select id, product_slug from card_products order by 2');
-    expect(after.rows).toHaveLength(10);
+    expect(after.rows).toHaveLength(11);
     // Stable identifiers across re-seeds (Phase 2 depends on this).
     expect(after.rows).toEqual(before.rows);
     await db.close();
@@ -83,7 +85,7 @@ describe('migrations and seed', () => {
       return { own: own.rows, products: products.rowCount, secretError };
     });
     expect(asUser.own).toEqual([{ user_id: u1 }]);
-    expect(asUser.products).toBe(10);
+    expect(asUser.products).toBe(11);
     expect(String(asUser.secretError)).toMatch(/permission denied/i);
     await db.close();
   });

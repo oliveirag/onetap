@@ -5,6 +5,7 @@ export * from './ledger.js';
 export * from './funding.js';
 export * from './processor.js';
 export * from './funding-selector.js';
+export * from './category-routing.js';
 export * from './authorization.js';
 export * from './lifecycle.js';
 export * from './bill-pay.js';

@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import {
   ReclaimedError,
   type CreateMockFundingAccountInput,
@@ -139,7 +140,8 @@ export class CardsService {
     return listMockFundingDtos(this.db, userId);
   }
 
-  async createFunding(userId: string, input: CreateMockFundingAccountInput): Promise<MockFundingAccountDto> {
+  /** `extra.last4` is the real account's mask (e.g. from Plaid); otherwise a random fictional one. */
+  async createFunding(userId: string, input: CreateMockFundingAccountInput, extra: { last4?: string | null } = {}): Promise<MockFundingAccountDto> {
     if (input.cardProductId) {
       const p = await this.db.query('select 1 from card_products where id = $1', [input.cardProductId]);
       if (!p.rowCount) throw new ReclaimedError('NOT_FOUND', 'Card product not found.');
@@ -148,10 +150,11 @@ export class CardsService {
       input.priority ??
       ((await this.db.query<{ p: number }>(`select coalesce(max(priority), 0)::int + 1 as p from mock_funding_accounts where user_id = $1 and status <> 'CLOSED'`, [userId])).rows[0]?.p ?? 1);
     const { rows } = await this.db.query<{ id: string }>(
-      `insert into mock_funding_accounts (user_id, display_name, fictional_issuer, kind, card_product_id, credit_limit_cents, current_balance_cents, priority)
-       values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+      `insert into mock_funding_accounts (user_id, display_name, fictional_issuer, kind, card_product_id, credit_limit_cents, current_balance_cents, priority, last4)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
       [userId, input.displayName, input.fictionalIssuer, input.kind, input.cardProductId ?? null,
-        input.kind === 'CREDIT' ? input.limitOrBalanceCents : 0, input.kind === 'DEPOSIT' ? input.limitOrBalanceCents : 0, Math.min(priority, 99)],
+        input.kind === 'CREDIT' ? input.limitOrBalanceCents : 0, input.kind === 'DEPOSIT' ? input.limitOrBalanceCents : 0, Math.min(priority, 99),
+        /^\d{4}$/.test(extra.last4 ?? '') ? extra.last4 : String(randomInt(0, 10_000)).padStart(4, '0')],
     );
     return (await this.listFunding(userId)).find((f) => f.id === rows[0]!.id)!;
   }

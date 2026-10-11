@@ -2,7 +2,7 @@ import { ReclaimedError, type AuthorizationResult, type PaymentState } from '@re
 import type { Database, Queryable } from '@reclaimed/database';
 import { systemClock, hrnow, msSince, type Clock } from './clock.js';
 import type { FundingProvider, MockFundingRow } from './funding.js';
-import type { FundingSelector } from './funding-selector.js';
+import type { FundingSelector, RoutingColumns, RoutingPlan } from './funding-selector.js';
 import { fundingHoldsAccount, SYSTEM_ACCOUNTS, TransactionLedger } from './ledger.js';
 import {
   loadAuthorizationDto,
@@ -200,6 +200,7 @@ export class AuthorizationService {
     }
 
     // ---------- Stage 2: funding selection with deterministic fallback ----------
+    let plan: RoutingPlan | null = null;
     let final: { result: AuthorizationResult; reason: string | null; funding: MockFundingRow | null; ref: string | null } = {
       result: 'DECLINED',
       reason: 'NO_FUNDING_ACCOUNT_CONFIGURED',
@@ -207,7 +208,7 @@ export class AuthorizationService {
       ref: null,
     };
     try {
-      const candidates = await this.deps.selector.selectCandidates(this.db, {
+      const selectionContext = {
         userId: card.user_id,
         reclaimedCardId: card.id,
         primaryFundingAccountId: card.primary_funding_account_id,
@@ -217,7 +218,12 @@ export class AuthorizationService {
         merchantName: txn.merchant_name,
         mcc: txn.mcc,
         amountCents: txn.amount_cents,
-      });
+      };
+      const selection = this.deps.selector.selectRoute
+        ? await this.deps.selector.selectRoute(this.db, selectionContext)
+        : { candidates: await this.deps.selector.selectCandidates(this.db, selectionContext), plan: null };
+      const candidates = selection.candidates;
+      plan = selection.plan;
       logs.push({ event: 'FUNDING_CANDIDATES', detail: { selector: this.deps.selector.name, candidates } });
 
       let sequence = 0;
@@ -322,12 +328,15 @@ export class AuthorizationService {
       final = { result: 'INTERNAL_ERROR', reason: 'INTERNAL_ERROR', funding: final.funding, ref: null };
     }
 
-    await this.finalize(txn, attemptId, final.result, final.reason, final.result === 'APPROVED' ? final.funding : null, final.ref, logs, {
+    const approvedFunding = final.result === 'APPROVED' ? final.funding : null;
+    const routing = approvedFunding && plan ? plan.describe(approvedFunding.id) : null;
+    if (routing) logs.push({ event: 'ROUTING_DECISION', detail: { ...routing } });
+    await this.finalize(txn, attemptId, final.result, final.reason, approvedFunding, final.ref, logs, {
       totalMs: msSince(started),
       dbLookupMs,
       fundingEvaluationMs,
       processorMs,
-    });
+    }, routing);
     return this.replay(txn.id, false);
   }
 
@@ -364,6 +373,7 @@ export class AuthorizationService {
     processorReference: string | null,
     logs: AuthLog[],
     latency: { totalMs: number; dbLookupMs: number; fundingEvaluationMs: number; processorMs: number },
+    routing: RoutingColumns | null = null,
   ): Promise<void> {
     const toState = DECLINE_STATE[result];
     assertTransition('AUTHORIZATION_PENDING', toState);
@@ -372,9 +382,17 @@ export class AuthorizationService {
         `update payment_transactions
             set state = $2, authorization_result = $3, decline_reason = $4,
                 funding_account_id = $5, funding_account_name = $6, processor_reference = $7,
-                authorized_at = case when $3 = 'APPROVED' then now() else authorized_at end
+                authorized_at = case when $3 = 'APPROVED' then now() else authorized_at end,
+                category_id = $8, funding_account_last4 = $9, routing_mode = $10, decision_reason = $11,
+                multiplier = $12, points_earned = $13, reward_value_cents = $14, baseline_value_cents = $15,
+                best_value_cents = $16, alternatives = $17
           where id = $1 and state = 'AUTHORIZATION_PENDING'`,
-        [txn.id, toState, result, reason, funding?.id ?? null, funding?.display_name ?? null, processorReference],
+        // Routing fields land in the same update as the final state, so Realtime delivers one complete row.
+        [txn.id, toState, result, reason, funding?.id ?? null, funding?.display_name ?? null, processorReference,
+          routing?.category_id ?? null, routing?.funding_account_last4 ?? null, routing?.routing_mode ?? null,
+          routing?.decision_reason ?? null, routing?.multiplier ?? null, routing?.points_earned ?? null,
+          routing?.reward_value_cents ?? null, routing?.baseline_value_cents ?? null, routing?.best_value_cents ?? null,
+          routing ? JSON.stringify(routing.alternatives) : null],
       );
       await tx.query(
         `update authorization_attempts

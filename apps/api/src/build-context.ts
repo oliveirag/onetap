@@ -2,7 +2,7 @@ import { createPgDatabase, type Database } from '@reclaimed/database';
 import {
   AuthorizationService,
   BillPaymentService,
-  ConfiguredFundingSelector,
+  CategoryRoutingSelector,
   MockBillPaymentProvider,
   MockFundingProvider,
   MockPaymentProcessor,
@@ -27,6 +27,7 @@ import { CardsService } from './services/cards-service.js';
 import { HardwareService } from './services/hardware-service.js';
 import { ProfileService } from './services/profile-service.js';
 import { DashboardService } from './services/dashboard-service.js';
+import { OneTapService } from './services/onetap-service.js';
 
 export interface ContextOverrides {
   db?: Database;
@@ -68,7 +69,7 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
 
   const funding = new MockFundingProvider();
   const ledger = new TransactionLedger();
-  const authorization = new AuthorizationService(db, { funding, selector: new ConfiguredFundingSelector(), processor, ledger }, { authorizationTimeoutMs: config.AUTHORIZATION_TIMEOUT_MS });
+  const authorization = new AuthorizationService(db, { funding, selector: new CategoryRoutingSelector(), processor, ledger }, { authorizationTimeoutMs: config.AUTHORIZATION_TIMEOUT_MS });
   const lifecycle = new PaymentLifecycleService(db, { funding, processor, ledger }, { checkoutTtlMs: config.CHECKOUT_TTL_MS });
   const billPay = new BillPaymentService(
     db,
@@ -96,6 +97,11 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
   });
   const profile = new ProfileService(db, { authAdmin, plaid, logger });
   const dashboard = new DashboardService(db, { accounts, cards, plaid });
+  const onetap = new OneTapService(db, { plaid, cards, hardware, logger }, {
+    plaidConfigured: Boolean(plaidGateway && cipher),
+    enrollmentEnabled: config.isDev || config.HARDWARE_TEST_MODE,
+    enrollmentWaitMs: config.ONETAP_ENROLL_WAIT_MS,
+  });
 
   const terminalSecrets = o.terminalSecrets ?? new Map<string, string>();
   if (!o.terminalSecrets && process.env.TEST_TERMINAL_SECRET) {
@@ -112,6 +118,6 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
     terminalSecrets,
     plaidWebhookVerifier: plaidGateway ? new PlaidWebhookVerifier(plaidGateway) : null,
     lithic,
-    services: { plaid, matching, accounts, cards, hardware, profile, dashboard, authorization, lifecycle, billPay },
+    services: { plaid, onetap, matching, accounts, cards, hardware, profile, dashboard, authorization, lifecycle, billPay },
   };
 }

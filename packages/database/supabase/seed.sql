@@ -1,6 +1,5 @@
--- Reclaimed Phase 1 seed: 10 credit card products.
--- Idempotent: keyed on product_slug; safe to run any number of times.
--- Only names and card networks are recorded. No fees, rewards or benefits (Phase 2).
+-- Seed: 10 credit card products plus the routing reference data (categories, MCC map, reward rates).
+-- Idempotent: keyed on product_slug / natural keys; safe to run any number of times.
 -- Networks verified 2026-10-10 against issuer/press descriptions; see docs/setup.md for caveats.
 
 insert into public.card_products (issuer_name, product_name, product_slug, card_network, notes, match_keywords)
@@ -35,3 +34,79 @@ on conflict (product_slug) do update
       card_network = excluded.card_network,
       notes = excluded.notes,
       match_keywords = excluded.match_keywords;
+
+-- PRD F2: an account that matches no product still routes, at 1x on everything.
+insert into public.card_products (issuer_name, product_name, product_slug, card_network, notes, match_keywords, is_generic)
+values ('Other', 'Other card', 'other-card', 'VISA', 'Generic product for unmatched accounts.', '{}', true)
+on conflict (product_slug) do update set is_generic = true;
+
+-- ---------- Routing reference data (OneTap) ----------
+-- Reward multipliers are DEMO ESTIMATES (the app labels them), not verified issuer terms.
+-- They mirror mobile/src/lib/catalog.ts. cents_per_point is 1.00 for every product.
+
+update public.card_products p
+   set reward_type = v.reward_type, reward_currency = v.reward_currency, card_art = v.card_art, cents_per_point = 1.00
+  from (values
+    ('amex-gold', 'points', 'Membership Rewards', 'lines'),
+    ('amex-platinum', 'points', 'Membership Rewards', 'solid'),
+    ('capital-one-savor', 'cashback', 'Cash back', 'dots'),
+    ('capital-one-venture-x', 'points', 'Capital One Miles', 'grid'),
+    ('chase-freedom-flex', 'points', 'Ultimate Rewards', 'lines'),
+    ('chase-freedom-unlimited', 'points', 'Ultimate Rewards', 'dots'),
+    ('chase-sapphire-preferred', 'points', 'Ultimate Rewards', 'dots'),
+    ('citi-custom-cash', 'points', 'ThankYou Points', 'grid'),
+    ('citi-double-cash', 'cashback', 'Cash back', 'solid'),
+    ('discover-it-cash-back', 'cashback', 'Cash back', 'grid'),
+    ('other-card', 'cashback', 'Cash back', 'solid')
+  ) as v(slug, reward_type, reward_currency, card_art)
+ where p.product_slug = v.slug;
+
+-- One row per product and category; categories not listed earn 1x.
+insert into public.card_product_rates (card_product_id, category_id, multiplier)
+select p.id, c.id, coalesce(r.multiplier, 1)
+  from public.card_products p
+  cross join public.categories c
+  left join (values
+    ('amex-gold', 'dining', 4), ('amex-gold', 'groceries', 4), ('amex-gold', 'travel', 3),
+    ('amex-platinum', 'travel', 5),
+    ('capital-one-savor', 'dining', 3), ('capital-one-savor', 'groceries', 3), ('capital-one-savor', 'streaming', 3),
+    ('capital-one-venture-x', 'dining', 2), ('capital-one-venture-x', 'groceries', 2), ('capital-one-venture-x', 'gas', 2),
+    ('capital-one-venture-x', 'streaming', 2), ('capital-one-venture-x', 'travel', 2), ('capital-one-venture-x', 'general', 2),
+    ('chase-freedom-flex', 'dining', 3),
+    ('chase-freedom-unlimited', 'dining', 3), ('chase-freedom-unlimited', 'groceries', 1.5), ('chase-freedom-unlimited', 'gas', 1.5),
+    ('chase-freedom-unlimited', 'streaming', 1.5), ('chase-freedom-unlimited', 'travel', 1.5), ('chase-freedom-unlimited', 'general', 1.5),
+    ('chase-sapphire-preferred', 'dining', 3), ('chase-sapphire-preferred', 'streaming', 3), ('chase-sapphire-preferred', 'travel', 5),
+    ('citi-custom-cash', 'gas', 5),
+    ('citi-double-cash', 'dining', 2), ('citi-double-cash', 'groceries', 2), ('citi-double-cash', 'gas', 2),
+    ('citi-double-cash', 'streaming', 2), ('citi-double-cash', 'travel', 2), ('citi-double-cash', 'general', 2)
+  ) as r(slug, category_id, multiplier) on r.slug = p.product_slug and r.category_id = c.id
+on conflict (card_product_id, category_id) do update set multiplier = excluded.multiplier;
+
+-- MCC -> category. Unlisted MCCs route as 'general'.
+insert into public.mcc_map (mcc, category_id, description)
+values
+  ('5411', 'groceries', 'Grocery stores, supermarkets'),
+  ('5422', 'groceries', 'Meat provisioners'),
+  ('5441', 'groceries', 'Candy, nut and confectionery stores'),
+  ('5451', 'groceries', 'Dairy products stores'),
+  ('5462', 'groceries', 'Bakeries'),
+  ('5541', 'gas', 'Service stations'),
+  ('5542', 'gas', 'Automated fuel dispensers'),
+  ('5811', 'dining', 'Caterers'),
+  ('5812', 'dining', 'Restaurants'),
+  ('5813', 'dining', 'Bars'),
+  ('5814', 'dining', 'Fast food'),
+  ('4899', 'streaming', 'Cable and streaming services'),
+  ('5815', 'streaming', 'Digital media'),
+  ('5816', 'streaming', 'Digital games'),
+  ('5818', 'streaming', 'Digital goods'),
+  ('3058', 'travel', 'Delta Air Lines'),
+  ('4511', 'travel', 'Airlines'),
+  ('4111', 'travel', 'Commuter transport'),
+  ('4121', 'travel', 'Taxis and rideshare'),
+  ('4722', 'travel', 'Travel agencies'),
+  ('7011', 'travel', 'Hotels and lodging'),
+  ('7512', 'travel', 'Car rental'),
+  ('5310', 'general', 'Discount stores'),
+  ('5912', 'general', 'Drug stores')
+on conflict (mcc) do update set category_id = excluded.category_id, description = excluded.description;

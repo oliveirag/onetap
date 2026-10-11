@@ -27,6 +27,7 @@ export const ERROR_CODES = {
   NFC_CARD_FROZEN: { status: 403, retryable: false, message: 'This Reclaimed card is frozen.' },
   NFC_DUPLICATE_TAP: { status: 409, retryable: false, message: 'This tap was already processed.' },
   NFC_ENROLLMENT_NOT_ACTIVE: { status: 409, retryable: false, message: 'There is no active enrollment session.' },
+  NFC_ENROLLMENT_TIMEOUT: { status: 409, retryable: true, message: 'No card was tapped. Hold your card on the reader, then try again.' },
   HARDWARE_BRIDGE_UNAVAILABLE: { status: 503, retryable: true, message: 'The hardware bridge is not connected.' },
   HARDWARE_AUTH_FAILED: { status: 401, retryable: false, message: 'Hardware bridge authentication failed.' },
   TERMINAL_AUTH_FAILED: { status: 401, retryable: false, message: 'Terminal authentication failed.' },

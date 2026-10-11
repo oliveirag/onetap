@@ -13,6 +13,7 @@ import type { CardsService } from './services/cards-service.js';
 import type { HardwareService } from './services/hardware-service.js';
 import type { ProfileService } from './services/profile-service.js';
 import type { DashboardService } from './services/dashboard-service.js';
+import type { OneTapService } from './services/onetap-service.js';
 
 export interface AppContext {
   config: Config;
@@ -27,6 +28,7 @@ export interface AppContext {
   lithic: LithicGateway | null;
   services: {
     plaid: PlaidService;
+    onetap: OneTapService;
     matching: CardMatchingService;
     accounts: AccountsService;
     cards: CardsService;

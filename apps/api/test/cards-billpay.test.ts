@@ -35,7 +35,7 @@ describe('Demo D — seeded card products', () => {
       const res = await h.http().put(`/api/v1/accounts/${u.acct.id}/card-product`).set(u.user.auth).send({ cardProductId: dc });
       expect(res.body.data).toMatchObject({ cardProductConfirmed: true, cardProduct: { id: dc, productName: 'Citi Double Cash' } });
     }
-    expect((await h.db.query('select count(*)::int as n from card_products')).rows[0]).toEqual({ n: 10 });
+    expect((await h.db.query('select count(*)::int as n from card_products where not is_generic')).rows[0]).toEqual({ n: 10 });
     expect((await h.db.query('select count(distinct card_product_id)::int as n from user_cards')).rows[0]).toEqual({ n: 1 });
     // Persisted.
     expect((await h.http().get(`/api/v1/accounts/${b.acct.id}`).set(b.user.auth)).body.data.cardProduct.productSlug).toBe('citi-double-cash');

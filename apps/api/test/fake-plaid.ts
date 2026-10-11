@@ -44,6 +44,25 @@ export class FakePlaidGateway implements PlaidGateway {
     this.linkTokenCalls.push(args);
     return { linkToken: `link-sandbox-${randomUUID()}`, expiration: new Date(Date.now() + 4 * 3600_000).toISOString() };
   }
+  sandboxCalls: Parameters<PlaidGateway['createSandboxPublicToken']>[0][] = [];
+  async createSandboxPublicToken(args: Parameters<PlaidGateway['createSandboxPublicToken']>[0]) {
+    this.sandboxCalls.push(args);
+    return this.addInstitution({
+      institutionId: args.institutionId,
+      accounts: args.creditCards.map((c, i) => ({
+        accountId: `acc-custom-${i}-${randomUUID()}`,
+        name: c.name,
+        officialName: c.name,
+        mask: c.mask,
+        type: 'credit',
+        subtype: 'credit card',
+        current: c.balance,
+        available: c.limit - c.balance,
+        limit: c.limit,
+        isoCurrencyCode: 'USD',
+      })),
+    });
+  }
   async exchangePublicToken(publicToken: string) {
     const access = this.publicTokens.get(publicToken);
     if (!access) throw new PlaidApiError('INVALID_INPUT', 'INVALID_PUBLIC_TOKEN', 'bad public token', 400);

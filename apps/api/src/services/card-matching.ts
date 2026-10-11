@@ -33,7 +33,7 @@ export class CardMatchingService {
     const q = norm(search);
     const { rows } = await this.db.query<CardProductRow>(
       `select id, issuer_name, product_name, product_slug, card_network from card_products
-        where $1 = '' or lower(issuer_name || ' ' || product_name || ' ' || product_slug || ' ' || array_to_string(match_keywords, ' ')) like '%' || $1 || '%'
+        where not is_generic and ($1 = '' or lower(issuer_name || ' ' || product_name || ' ' || product_slug || ' ' || array_to_string(match_keywords, ' ')) like '%' || $1 || '%')
         order by issuer_name, product_name`,
       [q],
     );
@@ -59,7 +59,7 @@ export class CardMatchingService {
     const acct = rows[0];
     if (!acct) throw new ReclaimedError('NOT_FOUND', 'Account not found.');
     if (acct.type !== 'credit') return { matches: [], ambiguous: false };
-    const products = (await this.db.query<ProductWithKeywords>('select * from card_products')).rows;
+    const products = (await this.db.query<ProductWithKeywords>('select * from card_products where not is_generic')).rows;
     return scoreMatches({ institution: acct.institution_name, name: acct.name, officialName: acct.official_name }, products);
   }
 

@@ -167,6 +167,11 @@ export function userRoutes(ctx: AppContext): Router {
   r.post('/bill-pay/payments/:id/submit', async (req, res) => ok(res, await s.billPay.submit(uid(req), param(req, 'id'))));
   r.post('/bill-pay/payments/:id/cancel', async (req, res) => ok(res, await s.billPay.cancel(uid(req), param(req, 'id'))));
 
+  // ---------- OneTap app setup (mobile/src/lib/api.ts) ----------
+  r.post('/onetap/connect-test-accounts', async (req, res) => ok(res, await s.onetap.connectTestAccounts(uid(req)), 201));
+  // Waits up to ONETAP_ENROLL_WAIT_MS for the NFC card to be tapped when the user has none yet.
+  r.post('/onetap/card', async (req, res) => ok(res, await s.onetap.card(uid(req))));
+
   // ---------- Dashboard & dev hardware view ----------
   r.get('/dashboard/summary', async (req, res) => ok(res, await s.dashboard.summary(uid(req))));
   return r;

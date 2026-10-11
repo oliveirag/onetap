@@ -62,6 +62,8 @@ const schema = z.object({
   CHECKOUT_TTL_MS: z.coerce.number().int().default(90_000),
   AUTHORIZATION_TIMEOUT_MS: z.coerce.number().int().default(5_000),
   ENROLLMENT_TTL_MS: z.coerce.number().int().default(60_000),
+  /** How long POST /onetap/card waits for the NFC card to be tapped. */
+  ONETAP_ENROLL_WAIT_MS: z.coerce.number().int().min(1_000).default(45_000),
   SETTLEMENT_DELAY_MS: z.coerce.number().int().default(3_000),
   BILL_PAY_STEP_MS: z.coerce.number().int().default(4_000),
   JOBS_ENABLED: bool(true),
