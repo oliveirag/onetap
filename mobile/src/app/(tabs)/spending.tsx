@@ -64,19 +64,11 @@ export default function Dashboard() {
               </Text>
             </View>
             {earned && earned.totalSpendCents > 0 ? (
-              <View style={{ flexDirection: 'row', gap: theme.space['2xl'] }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body-sm" tone="secondary">
-                    Rewards
-                  </Text>
-                  <Money cents={earned.rewardsCents} reward variant="h3" roll />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text variant="body-sm" tone="secondary">
-                    Reclaimed
-                  </Text>
-                  <Money cents={earned.extraCents} reward variant="h3" roll />
-                </View>
+              <View>
+                <Text variant="body-sm" tone="secondary">
+                  Rewards
+                </Text>
+                <Money cents={earned.rewardsCents} reward variant="h3" roll />
               </View>
             ) : null}
             {earned?.insight ? (

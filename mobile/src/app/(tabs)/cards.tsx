@@ -63,7 +63,7 @@ export default function Cards() {
     const name = card.card_product?.name ?? card.account_name;
     if (card.id === defaultId) {
       ActionSheetIOS.showActionSheetWithOptions(
-        { title: `${name} is your default card`, message: 'Used when no card wins, and the baseline for Reclaimed.', options: ['Done'], cancelButtonIndex: 0 },
+        { title: `${name} is your default card`, message: 'Used when no card wins.', options: ['Done'], cancelButtonIndex: 0 },
         () => {},
       );
       return;
