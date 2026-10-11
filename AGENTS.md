@@ -8,7 +8,7 @@ OneTap: one card that routes every purchase to the best of the credit cards the 
 owns. A judge taps an NFC card at a store laptop, Lithic sends a live authorization to our backend,
 we pick the underlying card by category, and the phone shows the result within 2 seconds.
 
-Built for Knight Hacks IX (UCF, Oct 9 to 11, 2026). `README.md` is the full PRD: features and
+Built for Knight Hacks IX (UCF, Oct 9 to 11, 2026). `onetapPRD.md` is the full PRD: features and
 acceptance criteria (section 3), architecture (5), data model (6), UI principles (7), security (8),
 real vs simulated (9), build plan and gates (10). Read the relevant section before changing a feature.
 
@@ -33,7 +33,7 @@ Stay inside the area you were asked to work on. Changes to a shared contract nee
 Agree these before building against them; every workstream uses fake data that matches them.
 1. **Tap event:** card ID, terminal ID, timestamp. Fake tap and real reader send it identically.
 2. **Checkout:** merchant ID and card ID in; approved or declined, last four and timings out.
-3. **Transaction row:** exactly the `transactions` fields in README section 6. The app builds the
+3. **Transaction row:** exactly the `transactions` fields in onetapPRD.md section 6. The app builds the
    result screen from this row alone.
 4. **Chat:** mode (`relay` or `points`) and message in; reply text out.
 

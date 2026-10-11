@@ -78,7 +78,7 @@ export interface CardProduct {
   is_generic: boolean;
 }
 
-// card_product_rates table: one row per product and category (README section 6).
+// card_product_rates table: one row per product and category (onetapPRD.md section 6).
 export interface CardProductRate {
   card_product_id: string;
   category_id: CategoryId;

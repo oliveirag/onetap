@@ -7,7 +7,7 @@ export const MOCK_USER_ID = 'mock-user';
 
 export type MockMerchant = { id: string; name: string; mcc: string; category_id: CategoryId; amount_cents: number };
 
-// README F5 merchants: fictional names, real category codes, fixed baskets.
+// onetapPRD.md F5 merchants: fictional names, real category codes, fixed baskets.
 export const MERCHANTS: MockMerchant[] = [
   { id: 'm-knight-bites', name: 'Knight Bites', mcc: '5812', category_id: 'dining', amount_cents: 1300 },
   { id: 'm-citrus-coffee', name: 'Citrus Coffee', mcc: '5814', category_id: 'dining', amount_cents: 850 },
