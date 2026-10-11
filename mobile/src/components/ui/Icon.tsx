@@ -45,6 +45,7 @@ const SF: Record<IconName, SFSymbol> = {
   'thumbs-down': 'hand.thumbsdown',
   question: 'questionmark.circle',
   student: 'graduationcap',
+  offline: 'wifi.slash',
 };
 
 type Tone = 'primary' | 'secondary' | 'tertiary' | 'error' | 'on-action' | 'action';

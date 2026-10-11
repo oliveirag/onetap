@@ -40,11 +40,52 @@ code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size:
 .state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; }
 .state .big { font-size: 30px; font-weight: 700; } .state p { margin: 0; color: #9aa6b2; }
 .screen.approved .big { color: #4ade80; } .screen.declined .big, .screen.expired .big { color: #f87171; }
-.nfc { width: 86px; height: 86px; fill: none; stroke: #5eead4; stroke-width: 4; stroke-linecap: round; animation: pulse 1.4s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { opacity: .35; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+.nfc { width: 86px; height: 86px; fill: none; stroke: #5eead4; stroke-width: 4; stroke-linecap: round; }
+/* Waiting for a tap: the arcs light up inner to outer, like a signal going out. Constant motion, so linear-ish and looping. */
+.nfc path { opacity: .25; animation: wave 1.2s ease-in-out infinite; }
+.nfc path:nth-child(2) { animation-delay: .15s; } .nfc path:nth-child(3) { animation-delay: .3s; }
+@keyframes wave { 0%, 60%, 100% { opacity: .25; } 25% { opacity: 1; } }
 .spinner { width: 54px; height: 54px; border-radius: 50%; border: 5px solid #334155; border-top-color: #5eead4; animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .nfc, .spinner { animation: none; } }
+
+/* Motion tokens (strong curves; never ease-in). */
+:root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); }
+
+/* Each terminal state enters from slightly below; plays once per state change. */
+.state { animation: state-in 250ms var(--ease-out) both; }
+@keyframes state-in { from { opacity: 0; transform: translateY(8px); } }
+
+/* The result: ring settles from 0.95, then the mark draws itself. */
+.mark-result { width: 72px; height: 72px; fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.mark-result.ok { stroke: #4ade80; } .mark-result.bad { stroke: #f87171; }
+.mark-result circle { transform-origin: center; animation: ring-in 300ms var(--ease-out) both; }
+.mark-result path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 280ms var(--ease-out) 120ms forwards; }
+@keyframes ring-in { from { opacity: 0; transform: scale(.95); } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+/* Declined: one short head-shake, the universal "no". */
+.screen.declined .state { animation: state-in 250ms var(--ease-out) both, shake 320ms var(--ease-in-out) 200ms; }
+@keyframes shake { 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+
+/* New activity slides in at the top of the log. */
+.log li { animation: log-in 200ms var(--ease-out) both; }
+@keyframes log-in { from { opacity: 0; transform: translateY(-4px); } }
+
+/* Press feedback on press-in. */
+.primary, .ghost, .chip, .actions button { transition: transform 160ms var(--ease-out), opacity 160ms ease; }
+.primary:active:not(:disabled), .ghost:active:not(:disabled), .chip:active, .actions button:active:not(:disabled) { transform: scale(0.97); }
+.pill i { transition: background-color 200ms ease; }
+
+/* Reduced motion: keep the fades that explain a state change, drop travel, scale, shake and loops. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner, .nfc path { animation: none; opacity: 1; }
+  .state, .screen.declined .state { animation: fade 150ms ease both; }
+  .log li { animation: fade 150ms ease both; }
+  .mark-result circle { animation: none; }
+  .mark-result path { animation: none; stroke-dashoffset: 0; }
+  .primary, .ghost, .chip, .actions button { transition: none; }
+  .primary:active:not(:disabled), .ghost:active:not(:disabled), .chip:active, .actions button:active:not(:disabled) { transform: none; }
+}
+@keyframes fade { from { opacity: 0; } }
 .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 0; font-size: 13px; }
 .facts .wide { grid-column: 1 / -1; } .facts dt { color: #9aa6b2; } .facts dd { margin: 0; font-family: 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { TransactionListener } from '@/components/TransactionListener';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { queryClient } from '@/lib/queries';
@@ -74,6 +75,7 @@ function Root() {
           />
         </Stack.Protected>
       </Stack>
+      <OfflineBanner />
     </>
   );
 }

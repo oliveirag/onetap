@@ -33,7 +33,8 @@ export function Toggle({ value, onValueChange, label, description }: { value: bo
     })
     .onEnd((e) => {
       const on = e.velocityX !== 0 ? e.velocityX > 0 : x.get() > TRAVEL / 2;
-      x.set(withSpring(on ? TRAVEL : 0, spring.default));
+      // Carry the flick into the settle; clamp so the knob never passes the track's edge.
+      x.set(withSpring(on ? TRAVEL : 0, { ...spring.default, velocity: e.velocityX, overshootClamping: true }));
       if (on !== value) scheduleOnRN(onValueChange, on);
     });
 

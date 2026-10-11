@@ -37,4 +37,5 @@ export type IconName =
   | 'thumbs-up'
   | 'thumbs-down'
   | 'question'
-  | 'student';
+  | 'student'
+  | 'offline';
