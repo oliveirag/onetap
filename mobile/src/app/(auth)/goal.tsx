@@ -24,7 +24,7 @@ export default function Goal() {
       footer={
         <>
           <Hint text={hint} />
-          <Button label="Continue" onPress={() => (answers.goal ? router.push('/pains') : setHint('Pick one to continue.'))} />
+          <Button label="Continue" ready={!!answers.goal} onPress={() => (answers.goal ? router.push('/pains') : setHint('Pick one to continue.'))} />
         </>
       }
     >

@@ -80,10 +80,13 @@ it('shows the OneTap card standing in for the connected cards and links the phys
   renderCards();
   expect(await screen.findByText('Your OneTap card')).toBeTruthy();
   expect(await screen.findByText(/Stands in for your 4 connected cards/)).toBeTruthy();
-  expect(await screen.findByText('Digital card ready. The physical card is not linked yet.')).toBeTruthy();
+  expect(await screen.findByLabelText('Physical card, Not linked yet')).toBeTruthy();
 
+  // Confirm in place, then a countdown while the backend waits for the tap on the reader.
   fireEvent.press(screen.getByRole('button', { name: 'Link physical card' }));
-  expect(await screen.findByText('Hold your physical OneTap card on the reader.')).toBeTruthy();
-  expect(await screen.findByText('Digital and physical card linked.', {}, { timeout: 3000 })).toBeTruthy();
+  await act(() => new Promise((r) => setTimeout(r, 300)));
+  fireEvent.press(screen.getByRole('button', { name: 'Start linking' }));
+  expect(await screen.findByText(/Tap your card on the reader · 0:4\d/)).toBeTruthy();
+  expect(await screen.findByLabelText('Physical card, Linked', {}, { timeout: 3000 })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Link physical card' })).toBeNull();
 });
