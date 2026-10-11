@@ -16,15 +16,20 @@ export const mockStore = {
     oneTap = { ...oneTap, physical_linked: true };
     return { ...oneTap };
   },
+  setCardFrozen(frozen: boolean) {
+    oneTap = { ...oneTap, state: frozen ? 'paused' : 'open' };
+    return { ...oneTap };
+  },
   // Stand-in for card_spending: the seeded purchases, as the connected cards would report them.
+  // Every other one was paid with the default card out of habit, so "left on the table" has a value.
   cardSpending: (): CardSpendingRow[] =>
     transactions
       .filter((t) => t.status === 'approved')
-      .map((t) => {
-        const card = cards.find((c) => c.id === t.routed_card_id);
+      .map((t, i) => {
+        const card = cards.find((c) => c.id === (i % 2 ? (profile.default_card_id ?? t.routed_card_id) : t.routed_card_id));
         return {
           id: t.id,
-          financial_account_id: t.routed_card_id,
+          financial_account_id: card?.financial_account_id ?? t.routed_card_id,
           account_name: card?.account_name ?? 'Card',
           mask: card?.mask ?? null,
           merchant: t.merchant_name,
@@ -66,6 +71,7 @@ export const mockStore = {
     return { ...cards[i] };
   },
   addTransaction(tx: TransactionRow) {
-    if (!transactions.some((t) => t.id === tx.id)) transactions = [tx, ...transactions];
+    if (transactions.some((t) => t.id === tx.id)) transactions = transactions.map((t) => (t.id === tx.id ? tx : t));
+    else transactions = [tx, ...transactions];
   },
 };

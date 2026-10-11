@@ -14,6 +14,7 @@ import { SharedSecretAuthVerifier, type AuthAdmin } from '../src/lib/auth.js';
 import { NoopPublisher } from '../src/realtime/hub.js';
 import { FakePlaidGateway } from './fake-plaid.js';
 import type { LithicGateway } from '../src/integrations/lithic/lithic.js';
+import type { StripeGateway } from '../src/integrations/stripe/stripe.js';
 import type { PlaidGateway } from '../src/integrations/plaid/gateway.js';
 
 export const JWT_SECRET = 'test-jwt-secret-that-is-long-enough-123';
@@ -22,7 +23,7 @@ export const TERMINAL_CODE = 'TERM-TEST-001';
 export const TERMINAL_SECRET = 'test-terminal-secret-0123456789';
 
 export async function createHarness(
-  opts: { env?: Record<string, string>; processor?: PaymentProcessor; lithic?: LithicGateway | null; plaidGateway?: PlaidGateway } = {},
+  opts: { env?: Record<string, string>; processor?: PaymentProcessor; lithic?: LithicGateway | null; plaidGateway?: PlaidGateway; stripe?: StripeGateway | null } = {},
 ) {
   const db = await createTestDatabase();
   const config = loadConfig({
@@ -52,6 +53,7 @@ export async function createHarness(
     authAdmin,
     plaidGateway: opts.plaidGateway ?? plaid,
     lithic: opts.lithic ?? null,
+    stripe: opts.stripe ?? null,
     processor: opts.processor ?? new MockPaymentProcessor(),
     realtime,
     terminalSecrets: new Map([[TERMINAL_CODE, TERMINAL_SECRET]]),

@@ -20,6 +20,7 @@ import type { PlaidGateway } from './integrations/plaid/gateway.js';
 import { PlaidSdkGateway } from './integrations/plaid/sdk-gateway.js';
 import { PlaidWebhookVerifier } from './integrations/plaid/webhook-verifier.js';
 import { LithicSandboxProcessor, LithicSdkGateway, type LithicGateway } from './integrations/lithic/lithic.js';
+import { StripeSdkGateway, type StripeGateway } from './integrations/stripe/stripe.js';
 import { PlaidService } from './services/plaid-service.js';
 import { CardMatchingService } from './services/card-matching.js';
 import { AccountsService } from './services/accounts-service.js';
@@ -28,6 +29,7 @@ import { HardwareService } from './services/hardware-service.js';
 import { ProfileService } from './services/profile-service.js';
 import { DashboardService } from './services/dashboard-service.js';
 import { OneTapService } from './services/onetap-service.js';
+import { StripeChargeService } from './services/stripe-charge-service.js';
 
 export interface ContextOverrides {
   db?: Database;
@@ -35,6 +37,7 @@ export interface ContextOverrides {
   authAdmin?: AuthAdmin | null;
   plaidGateway?: PlaidGateway | null;
   lithic?: LithicGateway | null;
+  stripe?: StripeGateway | null;
   processor?: PaymentProcessor;
   realtime: RealtimePublisher;
   terminalSecrets?: Map<string, string>;
@@ -60,6 +63,8 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
         : null;
   const cipher = config.PLAID_TOKEN_ENCRYPTION_KEY ? new TokenCipher(config.PLAID_TOKEN_ENCRYPTION_KEY) : null;
   const lithic = o.lithic !== undefined ? o.lithic : config.LITHIC_API_KEY ? new LithicSdkGateway(config.LITHIC_API_KEY) : null;
+  const stripe = o.stripe !== undefined ? o.stripe : config.STRIPE_SECRET_KEY ? new StripeSdkGateway(config.STRIPE_SECRET_KEY) : null;
+  const charges = stripe ? new StripeChargeService(db, stripe, logger) : null;
 
   let processor: PaymentProcessor = o.processor ?? new MockPaymentProcessor();
   if (!o.processor && config.PAYMENT_MODE === 'lithic_sandbox') {
@@ -88,7 +93,7 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
   const cards = new CardsService(db, lithic);
   const pepper = config.NFC_UID_PEPPER ?? config.HARDWARE_BRIDGE_SECRET;
   if (!pepper) logger.warn('NFC_UID_PEPPER / HARDWARE_BRIDGE_SECRET not set — hardware endpoints are disabled.');
-  const hardware = new HardwareService(db, { authorization, realtime: o.realtime, logger }, {
+  const hardware = new HardwareService(db, { authorization, realtime: o.realtime, logger, charges }, {
     pepper: pepper ?? 'unset-pepper-hardware-disabled',
     debounceMs: config.TAP_DEBOUNCE_MS,
     enrollmentTtlMs: config.ENROLLMENT_TTL_MS,
@@ -117,6 +122,7 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
     terminalSecrets,
     plaidWebhookVerifier: plaidGateway ? new PlaidWebhookVerifier(plaidGateway) : null,
     lithic,
-    services: { plaid, onetap, matching, accounts, cards, hardware, profile, dashboard, authorization, lifecycle, billPay },
+    stripe,
+    services: { plaid, onetap, matching, accounts, cards, hardware, profile, dashboard, authorization, lifecycle, billPay, charges },
   };
 }

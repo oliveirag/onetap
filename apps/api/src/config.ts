@@ -50,6 +50,10 @@ const schema = z.object({
   LITHIC_WEBHOOK_SECRET: z.string().optional(),
   LITHIC_ASA_SECRET: z.string().optional(),
 
+  // Stripe test mode: charges the routed card after each approved tap. Off when the key is unset.
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_test_', 'must be a test-mode key (sk_test_...)').optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_').optional(),
+
   NFC_READER_MODEL: z.string().default('ACS ACR1252U'),
   HARDWARE_BRIDGE_SECRET: z.string().min(16).optional(),
   HARDWARE_TEST_MODE: bool(false),

@@ -7,8 +7,11 @@ import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Money } from '@/components/ui/Money';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
+import { CATEGORIES } from '@/lib/categories';
 import { summarizeCards } from '@/lib/dashboard';
-import { useCardSpending, useSpending } from '@/lib/queries';
+import { missedRewards } from '@/lib/missed';
+import { formatCents } from '@/lib/money';
+import { useCardRates, useCardSpending, useSpending, useUserCards } from '@/lib/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 
 // Dashboard (PRD F8: understanding money only). This month's spending on every card connected
@@ -19,6 +22,10 @@ export default function Dashboard() {
   const onetap = useSpending();
   const s = spending.data ? summarizeCards(spending.data) : undefined;
   const earned = onetap.data;
+  const cards = useUserCards();
+  const rates = useCardRates();
+  // Same rows as the totals above, re-run through Auto's rule (reclaimed PRD stretch 3).
+  const missed = spending.data && cards.data && rates.data ? missedRewards(spending.data, cards.data, rates.data) : null;
   // The donut and the category bars share one active category; the largest until one is tapped.
   const [picked, setPicked] = useState<string | null>(null);
   const activeId = s?.byCategory.some((c) => c.id === picked) ? picked! : (s?.byCategory[0]?.id ?? '');
@@ -72,8 +79,43 @@ export default function Dashboard() {
                 </View>
               </View>
             ) : null}
+            {earned?.insight ? (
+              <View style={{ gap: theme.space.xs }}>
+                <Text>{earned.insight.sentence}</Text>
+                {earned.insight.isDemoHistory ? <DemoLabel text="Based on demo history" /> : null}
+              </View>
+            ) : null}
             <DemoLabel text="Plaid sandbox transactions" />
           </View>
+
+          {missed && missed.missedCents > 0 ? (
+            <View
+              style={{
+                backgroundColor: theme.color.surface.default,
+                borderRadius: theme.radius.xl,
+                borderWidth: 1,
+                borderColor: theme.color.border.default,
+                padding: theme.space.lg,
+                gap: theme.space.sm,
+              }}
+            >
+              <Text variant="body-sm" tone="secondary">
+                Left on the table this month
+              </Text>
+              <Money cents={missed.missedCents} variant="h2" roll />
+              <Text variant="body-sm" tone="secondary">
+                What your best card would have earned beyond the card you used, across {missed.purchases}{' '}
+                {missed.purchases === 1 ? 'purchase' : 'purchases'}
+                {missed.topCategory ? `, most of it on ${CATEGORIES[missed.topCategory.id].label.toLowerCase()}` : ''}. OneTap routes this automatically.
+              </Text>
+              {missed.worst ? (
+                <Text variant="body-sm">
+                  {missed.worst.merchant} on {missed.worst.usedName}: {missed.worst.bestName} would have earned {formatCents(missed.worst.cents)} more.
+                </Text>
+              ) : null}
+              <DemoLabel text="Reward rates and point values are estimates" />
+            </View>
+          ) : null}
 
           <CategoryBars
             title="By category"

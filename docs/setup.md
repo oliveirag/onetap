@@ -93,6 +93,31 @@ On a **physical phone**, use your Mac's LAN IP instead of `localhost` for both U
 
 See [plaid.md](plaid.md). Set `PLAID_CLIENT_ID` and `PLAID_SECRET` (Sandbox), and register `com.reclaimed.app` as an allowed Android package in the Plaid dashboard.
 
+## 5b. Stripe test mode (optional)
+
+With `STRIPE_SECRET_KEY` (an `sk_test_` key) set, each approved tap is also charged through Stripe
+test mode, after the tap has been answered:
+- On the first charge for a user, the API creates one Stripe customer and saves one Stripe test
+  card per credit funding account, matched to its network (`pm_card_visa`, `pm_card_amex`, …).
+  No card numbers pass through our code.
+- The routed card is charged for the full amount. The payment's statement descriptor reads
+  `ONETAP* <MERCHANT>`, and its metadata carries the transaction id, MCC and the routed card.
+- If the routed card is declined, the default card is charged once. If Stripe is unreachable, the
+  charge stays `pending` and a background job retries it.
+- The result lands on `payment_transactions.charge_status` (`pending`, `succeeded` or `failed`), and
+  the receipt in the app shows it.
+
+**Webhook.** It confirms charges that weren't final when they were created. A signing secret
+belongs to one endpoint, so a secret copied from another app's endpoint won't verify ours.
+- Locally: `stripe listen --forward-to localhost:4000/api/v1/webhooks/stripe`, then put the printed
+  `whsec_…` in `STRIPE_WEBHOOK_SECRET`.
+- Hosted: `npm run setup:stripe -- https://<public-api-host>`.
+
+Test cards succeed straight away, so the demo works before the webhook is set up.
+
+**Where to look.** In the Stripe Dashboard (test mode), open Payments. The account's shortened
+statement descriptor (Settings → Public details) should be `ONETAP`.
+
 ## 6. Hardware
 
 ```bash

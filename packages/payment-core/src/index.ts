@@ -11,3 +11,5 @@ export * from './lifecycle.js';
 export * from './bill-pay.js';
 export * from './mappers.js';
 export * from './linked-cards.js';
+export * from './stripe-descriptor.js';
+export * from './stripe-charge.js';

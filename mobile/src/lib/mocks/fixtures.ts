@@ -37,6 +37,7 @@ const card = (
   credit_limit_cents: 500000,
   points_balance,
   is_active: true,
+  financial_account_id: `fa-${id}`,
   card_product: { id: `p-${id}`, cents_per_point: 1, is_generic: false, ...product },
 });
 
