@@ -4,7 +4,7 @@
 **Team:** Gui Oliveira, Sultan Lodi, Ehsan Ayoubi, Amer Samman
 **Goals:** Best Overall, plus the BNY Financial Services Challenge
 **Time remaining when written:** about 32 hours, nothing built yet
-**Status:** v1, written Saturday Oct 10
+**Status:** v1, written Saturday Oct 10. Updated Sunday Oct 11: Lithic was dropped. The backend authorizes taps itself and charges the routed card through Stripe in test mode.
 
 ---
 
@@ -70,7 +70,7 @@ Acceptance criteria
 - [ ] Each connected account is pre-matched to a card product from our catalog by account name. The user can change any match with a picker.
 - [ ] An account with no match is assigned "Other card (1x on everything)" so routing still works.
 - [ ] The user picks Auto or Manual. In Manual, they also pick the card.
-- [ ] Finishing onboarding creates a Lithic sandbox virtual card for the user and shows it in the app with its last four digits.
+- [ ] Finishing onboarding creates the user's OneTap card on our backend and shows it in the app with its last four digits.
 - [ ] If the app is closed mid-onboarding, it resumes at the same step.
 - [ ] Fallback: if the Plaid Link screen cannot be made to work in the app, the backend creates the sandbox connection directly and the onboarding screen shows the same accounts.
 
@@ -84,7 +84,7 @@ Acceptance criteria
 - [ ] The four demo cards give a different winner in at least four of the six categories, so the demo visibly switches cards.
 
 ### F4. Routing engine (Must)
-Runs on the backend when Lithic asks us to approve a purchase. Claude is not involved.
+Runs on the backend when a tap reaches us at checkout. Claude is not involved.
 
 Rules
 - Category comes from the merchant category code (MCC). An unknown code counts as general.
@@ -97,8 +97,8 @@ Rules
 Acceptance criteria
 - [ ] Auto mode picks the highest-value card in every case of the routing test matrix (see F10).
 - [ ] Manual mode routes to the chosen card for every category.
-- [ ] Our server answers Lithic in under 500 ms at the 95th percentile. Lithic declines at 6 seconds and recommends under 3.
-- [ ] A repeated request from Lithic for the same authorization creates only one transaction.
+- [ ] Our server answers the tap in under 500 ms at the 95th percentile. The Stripe charge happens after the answer, never before it.
+- [ ] A repeated tap or a retried Stripe call for the same purchase creates only one transaction and never charges twice.
 - [ ] A request that fails signature verification is rejected and logged.
 - [ ] Every decision stores the reason (best rate, tie, manual, fallback) and the losing options.
 
@@ -202,11 +202,11 @@ Acceptance criteria
 
 1. User signs up and connects cards through Plaid sandbox.
 2. App matches each account to a card product. User confirms and chooses a mode.
-3. Backend creates a Lithic sandbox card. User sees the in-app card and is handed the physical NFC card.
+3. Backend creates the OneTap card. User sees the in-app card and is handed the physical NFC card.
 4. At the store laptop, the judge picks a merchant and taps the card on the reader.
 5. The reader program sends the tap to the store page, which sends merchant and card to the backend.
-6. Backend asks Lithic to simulate an authorization with that merchant's MCC and amount.
-7. Lithic sends the authorization to our server in real time. We choose the underlying card, answer "approved", and save the transaction.
+6. Backend authorizes the tap with that merchant's MCC and amount.
+7. We choose the underlying card, answer "approved", save the transaction, then charge the chosen card through Stripe (test mode).
 8. The database pushes the new transaction to the phone. The phone shows the result.
 9. The store page shows "Approved".
 10. The judge opens Spending, then asks the Assistant to plan a trip with their points.
@@ -221,16 +221,16 @@ Acceptance criteria
 | Component | Technology | Owner | Job |
 |---|---|---|---|
 | Mobile app | Expo (React Native), TypeScript, EAS dev build | Gui | Onboarding, Home, result, Spending, Assistant |
-| Backend | Node, TypeScript, Express or Fastify, hosted on Railway | Ehsan | Routing, Lithic, Plaid exchange, Claude calls |
+| Backend | Node, TypeScript, Express or Fastify, hosted on Railway | Ehsan | Authorization, routing, Stripe charges, Plaid exchange, Claude calls |
 | Database, auth, realtime | Supabase | Ehsan | Tables, row-level security, live push to the app |
-| Card issuing | Lithic sandbox | Ehsan | Virtual card, simulated authorizations, Auth Stream Access |
+| Payments | Stripe test mode | Ehsan | Charges the routed card with saved test payment methods, signed webhooks |
 | Bank data | Plaid sandbox | Amer | Link, accounts, liabilities, transactions |
 | AI | Claude through the Anthropic API | Sultan | Relay and Points planner |
 | Store page | Next.js on the laptop | Amer | Merchant picker, tap screen, trace panel |
 | Reader program | Node with nfc-pcsc, ACR122U reader | Amer | Reads the card's ID and sends the tap event |
 
 ### Why these choices
-- **Railway over Render's free tier:** free Render services sleep when idle, and a sleeping server would miss Lithic's 6-second window. If you use Render, keep it awake with a scheduled ping.
+- **Railway over Render's free tier:** free Render services sleep when idle, and a sleeping server would blow the 2-second tap-to-phone target. If you use Render, keep it awake with a scheduled ping.
 - **Supabase Realtime:** the app listens for new rows in the transactions table, so there is no separate push system to build.
 - **Dev build, not Expo Go:** Sign in with Apple and the Plaid Link SDK both need native code.
 - **Claude outside the routing path:** routing must be fast and identical every time. A lookup gives that; a language model does not.
@@ -240,9 +240,9 @@ Acceptance criteria
 |---|---|---|
 | Create Plaid link token | App | Starts Plaid Link |
 | Exchange Plaid token | App | Saves the connection and imports accounts |
-| Create OneTap card | App | Creates the Lithic virtual card at the end of onboarding |
-| Store checkout | Store page | Receives merchant and card ID, triggers the simulated authorization |
-| Lithic authorization webhook | Lithic | Receives the live authorization, runs routing, answers |
+| Create OneTap card | App | Creates the OneTap card at the end of onboarding |
+| Store checkout | Store page | Receives merchant and card ID, authorizes the tap, runs routing, answers |
+| Stripe webhook | Stripe | Receives PaymentIntent results for the charge on the routed card |
 | Pair card | Store page | Links an NFC card ID to an account using the pairing code |
 | Chat | App | Builds context, calls Claude, returns the reply |
 | Latency metrics | Store page | Feeds the latency chart and trace panel |
@@ -258,16 +258,15 @@ These let all four people build in parallel against fake data.
 4. **Chat request and response:** mode and message in; reply text out.
 
 ### Routing speed plan
-Start with one indexed database read per authorization (the user's mode, cards and rates). Measure it. Add an in-memory cache only if the 95th percentile is above 500 ms. Answer Lithic first, then save the transaction, so the answer never waits on a write.
+Start with one indexed database read per authorization (the user's mode, cards and rates). Measure it. Add an in-memory cache only if the 95th percentile is above 500 ms. Answer the tap first, then save the transaction and charge through Stripe, so the answer never waits on a write or a network call.
 
-### Lithic facts the plan depends on (checked against Lithic docs)
-- No answer within 6 seconds means a decline. Lithic recommends answering within 3.
-- Auth Stream Access works in sandbox, and enrolling a webhook URL is self-serve.
-- The request includes the MCC and amounts.
-- Signature headers are only sent after you retrieve the signing secret once.
-- Lithic can deliver the same request twice, so handle duplicates.
-- Lithic runs its own checks first, so a paused card or a low spend limit stops the request before it reaches us. Keep the card open with a high limit.
-- Simulation endpoints are rate-limited. Run the latency test against our own endpoint, not through Lithic.
+### Stripe facts the build depends on
+- Test mode only: the backend refuses any `STRIPE_SECRET_KEY` that is not `sk_test_...`.
+- Card numbers never pass through our API. Each connected card gets one of Stripe's saved test payment methods by network (`pm_card_visa`, `pm_card_amex`, ...).
+- Every Stripe request carries an idempotency key, and the SDK's own retries are off, so our charge flow owns retries and never charges twice.
+- A purchase gets at most two charge attempts, recorded in `stripe_charge_attempts`.
+- Webhooks are verified with the `Stripe-Signature` header and `STRIPE_WEBHOOK_SECRET`; anything unsigned is rejected.
+- The API version is pinned in code, so a dashboard change cannot alter response shapes.
 
 ### Plaid facts the plan depends on (checked against Plaid docs)
 - A custom sandbox user can have accounts with names we choose, so "American Express Gold Card" can appear and be matched. Create it in Sandbox Studio in the Plaid dashboard.
@@ -326,7 +325,7 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 |---|---|---|
 | id | uuid, primary key | |
 | name | text | Fictional store name |
-| descriptor | text | Text sent to Lithic |
+| descriptor | text | Statement descriptor sent with the Stripe charge |
 | mcc | text, references mcc_map | |
 | basket_label | text | What is being bought |
 | amount_cents | integer | Fixed price |
@@ -403,7 +402,6 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 |---|---|---|
 | id | uuid, primary key | |
 | user_id | uuid, references profiles, unique | |
-| lithic_card_token | text, unique | Used to find the user when Lithic calls |
 | last4 | text | Shown in the app and on the store page |
 | nfc_uid | text, unique, nullable | ID of the physical card |
 | state | text | open or paused |
@@ -415,7 +413,7 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 | id | uuid, primary key | |
 | user_id | uuid, references profiles | |
 | onetap_card_id | uuid, references onetap_cards | |
-| lithic_token | text, unique, nullable | Blocks duplicates; empty for seeded rows |
+| processor_reference | text, unique, nullable | Blocks duplicates; empty for seeded rows |
 | merchant_id | uuid, references merchants, nullable | |
 | merchant_name | text | |
 | mcc | text | |
@@ -438,10 +436,10 @@ All tables live in Supabase Postgres. Money is stored in whole cents. Every user
 | Field | Type | Notes |
 |---|---|---|
 | id | uuid, primary key | |
-| lithic_token | text | |
+| processor_reference | text | |
 | transaction_id | uuid, references transactions, nullable | |
 | received_at | timestamptz | |
-| decision_ms | integer | Time to answer Lithic |
+| decision_ms | integer | Time to answer the tap |
 | result | text | approved, declined, error |
 | error | text, nullable | |
 | source | text | nfc, fake_tap, test |
@@ -506,11 +504,11 @@ The contents of that page could not be read while writing this document, so colo
 
 Sized for a hackathon, and each item is something a judge might ask about.
 
-- **Secrets stay on the server.** Lithic, Plaid, Claude and Supabase service keys live only in backend environment variables. None are in the app or the repository.
+- **Secrets stay on the server.** Stripe, Plaid, Claude and Supabase service keys live only in backend environment variables. None are in the app or the repository.
 - **Row-level security on every user table.** The app can only read rows where the user ID matches the signed-in user.
 - **Plaid access tokens** are stored in a table the app cannot read.
 - **Full card numbers** never reach the app or the store page. Only the last four digits are shown.
-- **Webhook verification.** The Lithic webhook checks the signature on every request and rejects anything unsigned.
+- **Webhook verification.** The Stripe webhook checks the `Stripe-Signature` header on every request and rejects anything unsigned.
 - **Store checkout endpoint** requires a shared terminal key, so a stranger cannot trigger authorizations.
 - **Claude receives only** card names, categories, totals and point balances. No account numbers, tokens or email addresses.
 - **The NFC card ID is not secure.** It can be copied. Real cards prove themselves with a cryptogram on each tap. This goes on the disclosure slide.
@@ -522,8 +520,8 @@ Sized for a hackathon, and each item is something a judge might ask about.
 | Real | Simulated |
 |---|---|
 | Accounts and sign-in | Charges to the underlying cards (a ledger entry in our database) |
-| Lithic sandbox API calls and live authorization stream | The money itself; nothing moves |
-| Our approve decision inside Lithic's time window | Bank accounts and cards (Plaid sandbox test data) |
+| Stripe test-mode charges on the routed card | The money itself; nothing moves (test mode, saved test cards) |
+| Our approve decision at the tap | Bank accounts and cards (Plaid sandbox test data) |
 | Routing logic and reward math | Point values, reward rates and award prices (hand-entered estimates) |
 | Realtime push to the phone | Starting point balances and the 30 days of demo history |
 | NFC read of a physical card | The store and its merchants |
@@ -551,14 +549,14 @@ Hour 0 is when this plan starts. Hour 32 is submission. The NFC reader arrives S
 ### Hours 0 to 2: setup, everyone together
 - Agree the four shared contracts (section 5).
 - Create the Supabase project and all tables.
-- Get Lithic, Plaid and Anthropic sandbox keys working with one test call each.
+- Get Stripe (test mode), Plaid and Anthropic keys working with one test call each.
 - Deploy an empty backend to Railway and confirm it has a public HTTPS address.
 - Gui starts the first EAS dev build with every native module already added (Apple sign-in, Plaid Link, haptics). Adding a native module later means another full build.
 
 ### Workstream plan
 | Hours | Gui: app | Ehsan: backend | Amer: store, NFC, Plaid | Sultan: AI, data, pitch |
 |---|---|---|---|---|
-| 2 to 6 | App shell, tabs, design system set up. Home and result screens on fake data. | Lithic card creation. Enroll the webhook. Receive a simulated authorization and approve it. | Store page with merchant picker and fake tap. Create the Plaid custom sandbox user with named card accounts. | Enter the card catalog, rates, MCC map and merchants. Pick the four demo cards. |
+| 2 to 6 | App shell, tabs, design system set up. Home and result screens on fake data. | OneTap card creation. Checkout authorization that approves a tap. Stripe test-mode charge and signed webhook. | Store page with merchant picker and fake tap. Create the Plaid custom sandbox user with named card accounts. | Enter the card catalog, rates, MCC map and merchants. Pick the four demo cards. |
 | 6 to 10 | Live subscription to transactions. Result screen with haptic. Sign in with Apple. | Routing engine with Auto, Manual and fallback. Save transactions. Checkout endpoint. | Connect the store page to the checkout endpoint. Trace panel. Plaid token endpoints with Ehsan. | Routing test matrix cases. Enter transfer partners and award options. Draft Claude prompts. |
 | **10** | **Gate A: fake tap to phone** | | | |
 | 10 to 14 | Onboarding screens. Plaid Link in the app. Card match picker. | Plaid exchange and account import. Card matching. Signature check and duplicate handling. | Reader program with nfc-pcsc. Swap in the real reader when it arrives and test within the hour. | Chat endpoint with Ehsan. Points planner calculation of reachable awards. |
@@ -590,8 +588,8 @@ Never cut: the tap loop, the result screen, the Spending view, the reliability p
 | NFC reader does not work on the laptop | Medium | The fake tap is built first and is always available. On recent macOS versions, USB readers can need a driver install; check the laptop's operating system before 11am. |
 | EAS build queue is slow | Medium | Start the first build in Hour 0 with all native modules. Later changes are then code-only. A local build is the backup. |
 | Sign in with Apple setup stalls | Medium | Hard check at Hour 8, then switch to email and password. |
-| Lithic request never reaches us | Medium | Lithic runs its own checks first. Keep the card open with a high spend limit, and log every checkout attempt so a missing webhook is visible. |
-| Backend too slow or asleep | Low | Railway stays awake. Health check before judging. Answer Lithic before writing to the database. |
+| A Stripe charge fails or its webhook never arrives | Medium | The tap is already answered, so the purchase still shows. Each charge attempt is recorded, and every checkout is logged so a missing webhook is visible. |
+| Backend too slow or asleep | Low | Railway stays awake. Health check before judging. Answer the tap before writing to the database. |
 | Venue Wi-Fi blocks or drops connections | Medium | Phone hotspot ready. The backend is hosted, so only the laptop and phone need a connection. |
 | Plaid Link fails inside the app | Medium | Server-side sandbox connection gives the same accounts. |
 | Plaid account names do not match the catalog | Low | Custom sandbox user with names we choose, plus the manual picker. |
@@ -607,7 +605,7 @@ All sandbox services are free. Treat the figures below as estimates and confirm 
 
 | Item | Cost |
 |---|---|
-| Lithic sandbox | Free |
+| Stripe test mode | Free |
 | Plaid sandbox | Free |
 | Supabase | Free tier is enough |
 | Railway | A few dollars for the weekend, or trial credit |
@@ -633,7 +631,7 @@ All sandbox services are free. Treat the figures below as estimates and confirm 
 | Person | Explains |
 |---|---|
 | Gui | The app, the design system, how the phone gets the result live |
-| Ehsan | The Lithic authorization stream, the 6-second window, the routing rules, the latency chart |
+| Ehsan | Authorizing the tap, the Stripe charge on the routed card, the routing rules, the latency chart |
 | Amer | The NFC reader, why a browser cannot read it, the fake-tap design, Plaid sandbox |
 | Sultan | Why Claude is outside the routing path, how the planner computes before Claude explains, what is simulated |
 
@@ -693,7 +691,8 @@ These were open questions answered with defaults. Change any of them and the rel
 
 ### Sources checked while writing
 - Knight Hacks IX judging rubric: https://knight-hacks.notion.site/Judging-Rubric-38ae290ccffe80618aaac0649d791591
-- Lithic Auth Stream Access: https://docs.lithic.com/docs/auth-stream-access-asa
-- Lithic quick start, customize authorizations: https://docs.lithic.com/docs/quick-start-customize-authorizations
+- Stripe idempotent requests: https://docs.stripe.com/api/idempotent_requests
+- Stripe webhook signatures: https://docs.stripe.com/webhooks#verify-events
+- Stripe test cards: https://docs.stripe.com/testing
 - Plaid custom sandbox users: https://plaid.com/docs/sandbox/user-custom/
 - NFC readers on macOS 14: https://www.wakdev.com/en/knowledge-base/troubleshooting/nfc-tools-macos-fix-the-reading-issue-with-nfc-readers-on-macos-14-sonoma.html

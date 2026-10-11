@@ -5,8 +5,9 @@ Guidance for AI coding agents (Claude Code, Cursor, and others) working in this 
 ## What this is
 
 OneTap: one card that routes every purchase to the best of the credit cards the user already
-owns. A judge taps an NFC card at a store laptop, Lithic sends a live authorization to our backend,
-we pick the underlying card by category, and the phone shows the result within 2 seconds.
+owns. A judge taps an NFC card at a store laptop, our backend authorizes the tap, picks the
+underlying card by category, charges it through Stripe (test mode), and the phone shows the result
+within 2 seconds.
 
 Built for Knight Hacks IX (UCF, Oct 9 to 11, 2026). `onetapPRD.md` is the full PRD: features and
 acceptance criteria (section 3), architecture (5), data model (6), UI principles (7), security (8),
@@ -19,7 +20,7 @@ real vs simulated (9), build plan and gates (10). Read the relevant section befo
 | Mobile app | Expo (React Native), TypeScript, EAS dev build | Gui |
 | Backend | Node, TypeScript, Express or Fastify, Railway | Ehsan |
 | Database, auth, realtime | Supabase | Ehsan |
-| Card issuing | Lithic sandbox | Ehsan |
+| Payments | Stripe test mode | Ehsan |
 | Bank data | Plaid sandbox | Amer |
 | Store page | Next.js | Amer |
 | NFC reader program | Node, nfc-pcsc, ACR122U | Amer |
@@ -39,17 +40,20 @@ Agree these before building against them; every workstream uses fake data that m
 
 ## Non-negotiables
 
-- **Secrets stay on the server.** Lithic, Plaid, Anthropic and Supabase service keys live only in
+- **Secrets stay on the server.** Stripe, Plaid, Anthropic and Supabase service keys live only in
   backend env vars. Never in the app, the store page, or git. Commit `.env.example`, never `.env`.
 - **Row-level security** on every user table. The app talks to Supabase directly with the anon key;
   anything needing a secret goes through the backend.
 - **Money is integer cents** everywhere. Display always shows two decimals.
 - **Claude is never in the routing path.** Routing is a deterministic lookup. In the Assistant, our
   code computes every number and Claude only explains it.
-- **Answer Lithic first, then write.** The authorization response must never wait on a DB write.
-  Target p95 under 500 ms; Lithic declines at 6 s.
-- **Idempotent on `lithic_token`.** A duplicate authorization creates one transaction.
-- **Verify Lithic webhook signatures**; reject and log unsigned requests.
+- **Answer the tap first, then write.** The authorization response must never wait on a DB write
+  or the Stripe charge. Target p95 under 500 ms.
+- **Idempotent Stripe calls.** Every Stripe request carries an idempotency key, so a retry never
+  charges twice.
+- **Verify Stripe webhook signatures** (`Stripe-Signature`); reject and log unsigned requests.
+- **Stripe test mode only.** `STRIPE_SECRET_KEY` must be `sk_test_...`; card numbers never pass
+  through our API (saved test payment methods only).
 - **Only last four digits** of any card reach the app or store page.
 - **Label demo data** (seeded history, point values, award prices) in one consistent quiet style.
 
