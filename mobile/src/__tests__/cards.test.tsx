@@ -62,3 +62,16 @@ it('explains that rules wait while Manual is on', async () => {
   expect(await screen.findByText(/Manual is on, so every purchase uses Custom Cash/)).toBeTruthy();
   mockStore.updateProfile({ routing_mode: 'auto', manual_card_id: null });
 });
+
+it('offers Plaid to connect cards when none are connected, and to add another bank otherwise', async () => {
+  const cards = jest.spyOn(mockStore, 'cards').mockReturnValueOnce([]);
+  const empty = renderCards();
+  expect(await screen.findByText('No cards connected')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Connect cards' })).toBeTruthy();
+  empty.unmount();
+  cards.mockRestore();
+
+  renderCards();
+  await screen.findAllByTestId('card-row');
+  expect(screen.getByRole('button', { name: 'Connect another bank' })).toBeTruthy();
+});

@@ -1,12 +1,16 @@
 import { ActionSheetIOS, ScrollView, View } from 'react-native';
 
+import { FormError } from '@/components/onboarding/FormError';
 import { RoutingRules } from '@/components/onetap/RoutingRules';
 import { SortableCardList } from '@/components/onetap/SortableCardList';
+import { Button } from '@/components/ui/Button';
 import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
-import { signOut, useCardRates, useProfile, useReorderCards, useSetDefaultCard, useUserCards } from '@/lib/queries';
+import { apiMessage } from '@/lib/api';
+import { LinkCanceled } from '@/lib/plaid';
+import { signOut, useCardRates, useConnectCards, useProfile, useReorderCards, useSetDefaultCard, useUserCards } from '@/lib/queries';
 import { routingRules } from '@/lib/rules';
 import type { UserCardRow } from '@/lib/types';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -19,6 +23,10 @@ export default function Cards() {
   const reorder = useReorderCards();
   const setDefault = useSetDefaultCard();
   const rates = useCardRates();
+  // Plaid Link, the same flow as setup step 1. Closing Link isn't a failure.
+  const connect = useConnectCards();
+  const connectFailed = connect.error && !(connect.error instanceof LinkCanceled) ? connect.error : null;
+  const connectError = connectFailed ? (apiMessage(connectFailed) ?? "Your cards didn't connect. Check your connection and try again.") : null;
   const defaultId = profile.data?.default_card_id ?? null;
   const manualCard = profile.data?.routing_mode === 'manual' ? cards.data?.find((c) => c.id === profile.data?.manual_card_id) : undefined;
   const manualName = manualCard ? (manualCard.card_product?.name ?? manualCard.account_name) : undefined;
@@ -59,7 +67,16 @@ export default function Cards() {
       ) : cards.error ? (
         <ErrorState what="Your cards did not load." todo="Check your connection and try again." onRetry={() => cards.refetch()} />
       ) : !cards.data?.length ? (
-        <Empty title="No cards connected" body="Connect your credit cards so OneTap can route each purchase." />
+        <Empty
+          title="No cards connected"
+          body="Connect your credit cards so OneTap can route each purchase."
+          action={
+            <View style={{ gap: theme.space.sm }}>
+              <FormError text={connectError} />
+              <Button label="Connect cards" loading={connect.isPending} onPress={() => connect.mutate()} />
+            </View>
+          }
+        />
       ) : (
         <>
           <View style={{ gap: theme.space.sm }}>
@@ -89,6 +106,11 @@ export default function Cards() {
             </Text>
             <SortableCardList cards={cards.data} defaultId={defaultId} onReorder={(order) => reorder.mutate(order)} onPressCard={onPressCard} />
             <DemoLabel text="Point balances are demo estimates" />
+          </View>
+
+          <View style={{ gap: theme.space.sm }}>
+            <FormError text={connectError} />
+            <Button variant="secondary" label="Connect another bank" loading={connect.isPending} onPress={() => connect.mutate()} />
           </View>
         </>
       )}

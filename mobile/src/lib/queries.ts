@@ -157,7 +157,11 @@ export function useConnectCards() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: api.connectCards,
-    onSuccess: (cards) => qc.setQueryData(keys.cards, cards),
+    onSuccess: (cards) => {
+      qc.setQueryData(keys.cards, cards);
+      // The backend sets the first card as the default when there was none.
+      qc.invalidateQueries({ queryKey: keys.profile });
+    },
   });
 }
 
