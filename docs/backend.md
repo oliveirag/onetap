@@ -18,7 +18,7 @@ Mobile app ◀── REST + authenticated WebSocket ─────────�
 
 | Path | What it is |
 |---|---|
-| `apps/mobile` | Expo SDK 57 / React Native app (Expo Router, TanStack Query, Supabase Auth, Plaid Link v13) |
+| `mobile/` | The OneTap app (Expo SDK 57). Not a workspace: install with `npm ci --prefix mobile`. See [onetap-app.md](onetap-app.md) |
 | `apps/api` | Express 5 + TypeScript REST API (`/api/v1`), realtime WebSocket, Plaid, Lithic, webhooks |
 | `apps/hardware-bridge` | PC/SC bridge for the ACR1252U (`pcsc-mini`), diagnostics and the physical test runner |
 | `apps/terminal-simulator` | Local store-terminal web app (React/Vite) plus a signing gateway |

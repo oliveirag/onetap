@@ -35,7 +35,8 @@
     "lint": "eslint .",
     "build": "npm run build --workspaces --if-present",
     "smoke": "tsx --env-file=.env scripts/smoke.ts",
-    "typecheck:mobile": "npm --prefix mobile run typecheck"
+    "typecheck:mobile": "npm --prefix mobile run typecheck",
+    "smoke:onetap": "tsx --env-file=.env scripts/onetap-smoke.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

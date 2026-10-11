@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Money } from '@/components/ui/Money';
 import { Text } from '@/components/ui/Text';
+import { apiMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useConnectTestAccounts } from '@/lib/queries';
 import { setupProgress } from '@/lib/setup';
@@ -34,7 +35,7 @@ export default function Connect() {
       back={false}
       footer={
         <>
-          <FormError text={connect.error ? "Your cards didn't connect. Check your connection and try again." : null} />
+          <FormError text={connect.error ? (apiMessage(connect.error) ?? "Your cards didn't connect. Check your connection and try again.") : null} />
           {connect.data ? (
             <Button label="Continue" onPress={next} />
           ) : (

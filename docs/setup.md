@@ -16,9 +16,10 @@ No paid services are required. Plaid Sandbox and Lithic Sandbox need **free** de
 
 ```bash
 git clone <repo> reclaimed && cd reclaimed
-npm install
+npm install                  # backend workspace (apps/*, packages/*)
+npm ci --prefix mobile       # the OneTap app has its own install
 cp .env.example .env
-cp apps/mobile/.env.example apps/mobile/.env
+cp mobile/.env.example mobile/.env
 ```
 
 Generate secrets in `.env`:
@@ -35,7 +36,7 @@ openssl rand -hex 24      # TEST_TERMINAL_SECRET
 npm run db:start          # first run pulls Docker images; applies all migrations + seed.sql
 ```
 
-The command prints the local URLs and keys. Put `PUBLISHABLE_KEY` into `SUPABASE_PUBLISHABLE_KEY` (and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `apps/mobile/.env`). Put `SECRET_KEY` into `SUPABASE_SERVICE_ROLE_KEY`, which is backend only.
+The command prints the local URLs and keys. Put `PUBLISHABLE_KEY` into `SUPABASE_PUBLISHABLE_KEY` (and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `mobile/.env`). Put `SECRET_KEY` into `SUPABASE_SERVICE_ROLE_KEY`, which is backend only.
 
 ```bash
 set -a; . ./.env; set +a
@@ -52,7 +53,8 @@ Migrations `20261010000100`–`20261010000700` and `seed.sql` (plus the `TERM-DE
 
 - The direct host `db.<ref>.supabase.co` is IPv6-only. Use the Session pooler: `postgresql://postgres.usdkaniukgrnneweshfl:<db-password>@aws-1-ca-central-1.pooler.supabase.com:5432/postgres?sslmode=require&uselibpqcompat=true`.
 - Schema changes: add a new file `supabase/migrations/<YYYYMMDDHHMMSS>_<name>.sql` and apply it with `npm run db:migrate`. Never edit an applied file. If you apply one through the Supabase MCP `apply_migration` tool instead, it records its own timestamp: update that row's `version` to the file's version, and apply migrations one at a time, because versions are per-second.
-- `.env.local-stack` and `apps/mobile/.env.local-stack` hold the previous local-Docker values. Copy them over `.env` to switch back.
+- `.env.local-stack` holds the local-Docker values. Copy them over `.env` to switch back.
+- **Check `DATABASE_URL` before `npm run db:migrate` / `db:seed`:** they write to whatever it points at, including the hosted project.
 
 ## 3. Backend, terminal, bridge
 
@@ -64,19 +66,28 @@ Or run them separately: `npm run dev:api`, `npm run dev:terminal`, `npm run dev:
 
 Health check: `curl localhost:4000/health` should return `{"liveMoney":false,...}`.
 
-## 4. Mobile app (iOS / Android)
+## 4. Mobile app: OneTap (`mobile/`)
 
-Plaid Link uses a native SDK, so **Expo Go cannot run the Connect Bank flow**. Use a development build:
+`mobile/` is the OneTap app (Expo SDK 57, Gui's design system). Plaid Link and Sign in with Apple need native code, so use a development build, not Expo Go:
 
 ```bash
-cd apps/mobile
-npx expo run:ios          # or: npx expo run:android   (builds and installs the dev client)
-npm run start             # later runs: start Metro and open the dev client
+cd mobile
+npx expo run:ios          # builds and installs the dev client (Xcode 26+)
+npm run start             # later runs (or `npm run dev:mobile` from the root)
 ```
 
-iOS 27 refuses to launch apps that don't adopt the UIScene life cycle (crash in `_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`). Expo SDK 57's app template doesn't yet, so the local config plugin `plugins/with-ios-scene-lifecycle.js` registers Expo's `ExpoAppSceneDelegate` in `Info.plist` and removes the window creation from `AppDelegate.swift`. It runs on every `expo prebuild` / `expo run:ios`, because `ios/` is generated and gitignored. Drop the plugin once the Expo template adopts scenes.
+`mobile/.env` (public values only):
 
-On a **physical phone**, set `EXPO_PUBLIC_API_URL=http://<your-mac-LAN-IP>:4000` and `EXPO_PUBLIC_SUPABASE_URL=http://<LAN-IP>:54321` in `apps/mobile/.env`. The phone and Mac must be on the same Wi-Fi network.
+| Variable | Local stack |
+|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | `http://localhost:54321` |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | the `PUBLISHABLE_KEY` printed by `npm run db:start` |
+| `EXPO_PUBLIC_API_URL` | `http://localhost:4000` |
+| `EXPO_PUBLIC_USE_MOCKS` | `0` for the real backend, `1` for typed fake data with no backend |
+
+On a **physical phone**, use your Mac's LAN IP instead of `localhost` for both URLs. The phone and Mac must be on the same Wi-Fi network. How the app maps onto the backend: [onetap-app.md](onetap-app.md).
+
+`npm run smoke:onetap` (with `npm run dev` running against local Supabase) runs the app's whole flow end to end with simulated taps: sign in, connect cards, link the card, check out, routed receipt over Realtime, Manual mode.
 
 ## 5. Plaid Sandbox (optional for Demos A/D; required for B/C)
 

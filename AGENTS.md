@@ -67,7 +67,12 @@ Agree these before building against them; every workstream uses fake data that m
 
 ## Working here
 
-- No build system exists yet at the root. Once each part is scaffolded, document its commands here.
+- Layout: `mobile/` (the app, own install), `apps/api`, `apps/hardware-bridge`, `apps/terminal-simulator`,
+  `packages/*` (npm workspaces), `reader/` (Amer's reader bridge, own install), `shared/contracts.ts`.
+  How the app maps onto the backend: `docs/onetap-app.md`. Backend setup: `docs/setup.md`.
+- Commands (root): `npm install`, `npm run dev` (API, terminal, bridge), `npm run dev:mobile`,
+  `npm run db:start|db:migrate|db:seed`, `npm run lint`, `npm run typecheck`, `npm test`,
+  `npm run smoke:onetap` (end to end against a running local stack).
 - Don't commit or push unless asked.
 - Git workflow for this project only: for each authorized change set, create a new feature branch,
   commit on that branch, push it, and open a pull request against the repository's default branch

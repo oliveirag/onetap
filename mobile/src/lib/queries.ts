@@ -4,10 +4,11 @@ import { AppState } from 'react-native';
 
 import { api } from './api';
 import { authBackend } from './auth';
+import { live } from './backend';
 import { mockStore } from './mocks/store';
 import { aggregate } from './spending';
-import { supabase, USE_MOCKS } from './supabase';
-import type { CardProductRate, ProfileRow, OneTapCardRow, RoutingMode, TransactionRow, UserCardRow } from './types';
+import { USE_MOCKS } from './supabase';
+import type { ProfileRow, RoutingMode, TransactionRow, UserCardRow } from './types';
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnReconnect: true, retry: 1, staleTime: 30_000 } },
@@ -26,26 +27,17 @@ export const keys = {
   transaction: (id: string) => ['transaction', id] as const,
 };
 
-async function must<T>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T> {
-  const { data, error } = await p;
-  if (error) throw error;
-  return data as T;
-}
-
 export function useProfile() {
   return useQuery({
     queryKey: keys.profile,
-    queryFn: () => (USE_MOCKS ? mockStore.profile() : must<ProfileRow>(supabase.from('profiles').select('*').single())),
+    queryFn: () => (USE_MOCKS ? mockStore.profile() : live.profile()),
   });
 }
 
 export function useUserCards() {
   return useQuery({
     queryKey: keys.cards,
-    queryFn: () =>
-      USE_MOCKS
-        ? mockStore.cards()
-        : must<UserCardRow[]>(supabase.from('user_cards').select('*, card_product:card_products(*)').order('priority')),
+    queryFn: () => (USE_MOCKS ? mockStore.cards() : live.userCards()),
   });
 }
 
@@ -55,28 +47,21 @@ export function useCardRates() {
   return useQuery({
     queryKey: keys.rates,
     staleTime: Infinity,
-    queryFn: () =>
-      USE_MOCKS
-        ? mockStore.rates()
-        : must<CardProductRate[]>(supabase.from('card_product_rates').select('card_product_id, category_id, multiplier')),
+    queryFn: () => (USE_MOCKS ? mockStore.rates() : live.rates()),
   });
 }
 
 export function useOneTapCard() {
   return useQuery({
     queryKey: keys.oneTapCard,
-    queryFn: () =>
-      USE_MOCKS ? mockStore.oneTapCard() : must<OneTapCardRow | null>(supabase.from('onetap_cards').select('id, last4, state').maybeSingle()),
+    queryFn: () => (USE_MOCKS ? mockStore.oneTapCard() : live.oneTapCard()),
   });
 }
 
 export function useTransactions() {
   return useQuery({
     queryKey: keys.transactions,
-    queryFn: () =>
-      USE_MOCKS
-        ? mockStore.transactions()
-        : must<TransactionRow[]>(supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(200)),
+    queryFn: () => (USE_MOCKS ? mockStore.transactions() : live.transactions()),
   });
 }
 
@@ -89,7 +74,7 @@ export function useTransaction(id: string) {
     queryFn: () =>
       USE_MOCKS
         ? (mockStore.transactions().find((t) => t.id === id) ?? Promise.reject(new Error('Transaction not found')))
-        : must<TransactionRow>(supabase.from('transactions').select('*').eq('id', id).single()),
+        : live.transaction(id),
   });
 }
 
@@ -99,7 +84,7 @@ function useProfilePatch() {
     mutationFn: async (patch: Partial<ProfileRow>) => {
       if (USE_MOCKS) return mockStore.updateProfile(patch);
       const current = qc.getQueryData<ProfileRow>(keys.profile);
-      return must<ProfileRow>(supabase.from('profiles').update(patch).eq('id', current?.id ?? '').select('*').single());
+      return live.updateProfile(current?.id ?? '', patch);
     },
     // Optimistic: the toggle flips instantly; roll back if the write fails.
     onMutate: async (patch) => {
@@ -136,8 +121,7 @@ export function useReorderCards() {
   return useMutation({
     mutationFn: async (order: string[]) => {
       if (USE_MOCKS) return mockStore.setCardOrder(order);
-      await Promise.all(order.map((id, i) => must(supabase.from('user_cards').update({ priority: i + 1 }).eq('id', id).select('id'))));
-      return order;
+      return live.setCardOrder(order);
     },
     onMutate: async (order) => {
       await qc.cancelQueries({ queryKey: keys.cards });
@@ -183,9 +167,7 @@ export function useSetCardProduct() {
   return useMutation({
     mutationFn: async ({ cardId, productId }: { cardId: string; productId: string }) => {
       if (USE_MOCKS) return mockStore.setCardProduct(cardId, productId);
-      return must<UserCardRow>(
-        supabase.from('user_cards').update({ card_product_id: productId, match_source: 'user' }).eq('id', cardId).select('*, card_product:card_products(*)').single(),
-      );
+      return live.setCardProduct(cardId, productId);
     },
     onSuccess: (card) => qc.setQueryData<UserCardRow[]>(keys.cards, (old = []) => old.map((c) => (c.id === card.id ? card : c))),
   });

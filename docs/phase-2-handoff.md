@@ -1,5 +1,7 @@
 # Phase 2 handoff — rewards optimizer
 
+> **Update (OneTap merge):** `CategoryRoutingSelector` (`packages/payment-core/src/category-routing.ts`) now implements category routing with demo reward rates and is wired in `build-context.ts`. See [onetap-app.md](onetap-app.md). The text below describes the original Phase 1 state.
+
 Phase 1 contains **no rewards logic**: no reward rates, rankings, point valuations, categories or caps. Funding is chosen by deterministic, user-configured ordering. This document describes where Phase 2 plugs in.
 
 ## The integration point

@@ -17,7 +17,7 @@ Docs: https://plaid.com/docs/ · React Native: https://plaid.com/docs/link/react
 | Step | Where |
 |---|---|
 | Link token (`/link/token/create`, products `transactions`, `optional_products: liabilities`) | `POST /api/v1/plaid/link-token` |
-| Open Link: `createPlaidLinkSession({ token, onSuccess, onExit, onEvent })` then `session.open()` (**SDK v13 API**) | `apps/mobile/src/lib/plaid.ts` |
+| Open Link in the app | Not wired in `mobile/` yet. Setup uses `POST /api/v1/onetap/connect-test-accounts`, which links a Plaid Sandbox custom test user server-side (PRD F2 fallback). `react-native-plaid-link-sdk` v13 is installed for when Link is added: `createPlaidLinkSession({ token, onSuccess })` then `session.open()` |
 | Public token → access token (`/item/public_token/exchange`); AES-256-GCM encrypted at rest | `POST /api/v1/plaid/exchange-token` |
 | Accounts and balances (`/accounts/get`), institution name | `PlaidService.refreshAccounts` |
 | Transactions (`/transactions/sync`) with cursor persistence, pagination, and a restart on `TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION` | `PlaidService.syncTransactions` |
