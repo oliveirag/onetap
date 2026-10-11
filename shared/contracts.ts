@@ -64,6 +64,9 @@ export interface TransactionRow {
   status: "approved" | "declined";
   is_seeded: boolean;            // true for demo history
   created_at: string;            // ISO 8601 UTC
+  // Stripe test-mode charge of the underlying card, after the routing decision. Null/absent: no charge.
+  charge_status?: "pending" | "succeeded" | "failed" | null;
+  charged_card_id?: string | null; // the card finally charged: the routed card, or the default after a decline
 }
 
 export interface CardProduct {

@@ -67,3 +67,15 @@ it('handles missing alternatives without crashing', () => {
 it('builds the spoken summary for VoiceOver', () => {
   expect(buildReceipt(base, 'Amex Gold').summary).toBe('Routed to Amex Gold, 4 times dining, plus $0.52');
 });
+
+it('describes the Stripe test-mode charge, including a fallback to another card', () => {
+  expect(buildReceipt(base, 'Amex Gold').chargeNote).toBeNull();
+  expect(buildReceipt({ ...base, charge_status: 'pending' }, 'Amex Gold').chargeNote).toBe('Charging $13.00 to Amex Gold in Stripe test mode.');
+  expect(buildReceipt({ ...base, charge_status: 'succeeded', charged_card_id: 'card-amex' }, 'Amex Gold').chargeNote).toBe(
+    'Charged $13.00 to Amex Gold in Stripe test mode.',
+  );
+  expect(buildReceipt({ ...base, charge_status: 'succeeded', charged_card_id: 'card-active' }, 'Amex Gold').chargeNote).toBe(
+    'Amex Gold declined, so $13.00 was charged to Active Cash in Stripe test mode.',
+  );
+  expect(buildReceipt({ ...base, charge_status: 'failed' }, 'Amex Gold').chargeNote).toBe('The Stripe test-mode charge of $13.00 failed.');
+});

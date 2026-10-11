@@ -71,6 +71,7 @@ export const mockStore = {
     return { ...cards[i] };
   },
   addTransaction(tx: TransactionRow) {
-    if (!transactions.some((t) => t.id === tx.id)) transactions = [tx, ...transactions];
+    if (transactions.some((t) => t.id === tx.id)) transactions = transactions.map((t) => (t.id === tx.id ? tx : t));
+    else transactions = [tx, ...transactions];
   },
 };

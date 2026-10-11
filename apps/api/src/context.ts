@@ -7,6 +7,7 @@ import type { RealtimePublisher } from './realtime/hub.js';
 import type { PlaidService } from './services/plaid-service.js';
 import type { PlaidWebhookVerifier } from './integrations/plaid/webhook-verifier.js';
 import type { LithicGateway } from './integrations/lithic/lithic.js';
+import type { StripeGateway } from './integrations/stripe/stripe.js';
 import type { CardMatchingService } from './services/card-matching.js';
 import type { AccountsService } from './services/accounts-service.js';
 import type { CardsService } from './services/cards-service.js';
@@ -14,6 +15,7 @@ import type { HardwareService } from './services/hardware-service.js';
 import type { ProfileService } from './services/profile-service.js';
 import type { DashboardService } from './services/dashboard-service.js';
 import type { OneTapService } from './services/onetap-service.js';
+import type { StripeChargeService } from './services/stripe-charge-service.js';
 
 export interface AppContext {
   config: Config;
@@ -26,6 +28,8 @@ export interface AppContext {
   terminalSecrets: Map<string, string>;
   plaidWebhookVerifier: PlaidWebhookVerifier | null;
   lithic: LithicGateway | null;
+  /** Stripe test mode; null when STRIPE_SECRET_KEY is unset. */
+  stripe: StripeGateway | null;
   services: {
     plaid: PlaidService;
     onetap: OneTapService;
@@ -38,5 +42,7 @@ export interface AppContext {
     authorization: AuthorizationService;
     lifecycle: PaymentLifecycleService;
     billPay: BillPaymentService;
+    /** Charges the routed card through Stripe after an approved tap; null when Stripe is off. */
+    charges: StripeChargeService | null;
   };
 }

@@ -72,7 +72,13 @@ export class HardwareService {
 
   constructor(
     private readonly db: Database,
-    private readonly deps: { authorization: AuthorizationService; realtime: RealtimePublisher; logger: Logger },
+    private readonly deps: {
+      authorization: AuthorizationService;
+      realtime: RealtimePublisher;
+      logger: Logger;
+      /** Stripe test-mode charge of the routed card; runs after the tap is answered. */
+      charges?: { start(transactionId: string): Promise<void> } | null;
+    },
     private readonly opts: { pepper: string; debounceMs: number; enrollmentTtlMs: number; paymentMode: string; lithic: HardwareStatusDto['lithic'] },
   ) {}
 
@@ -288,6 +294,10 @@ export class HardwareService {
       timestamp: tap.presentedAt,
       tapEventId: route.tapRowId,
     });
+    if (outcome.result === 'APPROVED' && !outcome.replayed && this.deps.charges) {
+      // Fire and forget: the tap answer and the routing result never wait on Stripe.
+      void this.deps.charges.start(c.id).catch((err) => this.deps.logger.error({ err, transactionId: c.id }, 'stripe charge start failed'));
+    }
     const event = { type: 'payment.updated' as const, transaction: outcome.transaction, authorization: outcome.authorization };
     this.deps.realtime.toTerminal(c.terminal_id, event);
     if (outcome.transaction.reclaimedCardId) {

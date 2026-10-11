@@ -49,6 +49,8 @@ const payment = (over: Partial<DbPayment> = {}): DbPayment => ({
   alternatives: [{ funding_account_id: 'fa-2', name: 'Citi Double Cash Card', last4: '7731', multiplier: 2, value_cents: 25 }],
   is_seeded: false,
   created_at: '2026-10-10T20:00:00.000Z',
+  charge_status: 'succeeded',
+  charged_funding_account_id: 'fa-1',
   ...over,
 });
 
@@ -117,6 +119,8 @@ describe('backend row mapping', () => {
       status: 'approved',
       is_seeded: false,
       created_at: '2026-10-10T20:00:00.000Z',
+      charge_status: 'succeeded',
+      charged_card_id: 'fa-1',
     });
   });
 

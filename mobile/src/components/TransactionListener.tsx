@@ -46,7 +46,10 @@ export function TransactionListener({ userId }: { userId: string | null }) {
     if (!userId && !USE_MOCKS) return;
 
     const handle = (tx: TransactionRow) => {
-      qc.setQueryData<TransactionRow[]>(keys.transactions, (old = []) => (old.some((t) => t.id === tx.id) ? old : [tx, ...old]));
+      // A row arrives again when its Stripe charge settles; replace it rather than keep the stale copy.
+      qc.setQueryData<TransactionRow[]>(keys.transactions, (old = []) =>
+        old.some((t) => t.id === tx.id) ? old.map((t) => (t.id === tx.id ? tx : t)) : [tx, ...old],
+      );
       qc.setQueryData(keys.transaction(tx.id), tx);
       open(tx);
     };

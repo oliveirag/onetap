@@ -2,10 +2,11 @@ import type { AppContext } from './context.js';
 
 /**
  * Lightweight in-process schedulers for the simulation: checkout expiry,
- * settlement completion, bill-payment progression and enrollment expiry.
+ * settlement completion, bill-payment progression, enrollment expiry and Stripe charge retries.
  */
 export function startJobs(ctx: AppContext): () => void {
   let running = false;
+  let lastChargeSweep = 0;
   const tick = async () => {
     if (running) return;
     running = true;
@@ -26,6 +27,11 @@ export function startJobs(ctx: AppContext): () => void {
       }
       for (const c of await billPay.tick()) ctx.realtime.toUser(c.userId, { type: 'bill_payment.updated', billPaymentId: c.id, state: c.state });
       for (const e of await hardware.expireEnrollments()) ctx.realtime.toUser(e.userId, { type: 'enrollment.updated', enrollment: await hardware.enrollmentDto(e.id) });
+      if (ctx.services.charges && Date.now() - lastChargeSweep >= 30_000) {
+        lastChargeSweep = Date.now();
+        // Not awaited: slow Stripe calls must not hold up settlement and the other jobs.
+        void ctx.services.charges.resumePending().catch((err) => ctx.logger.error({ err }, 'stripe charge sweep failed'));
+      }
     } catch (err) {
       ctx.logger.error({ err }, 'background job tick failed');
     } finally {
