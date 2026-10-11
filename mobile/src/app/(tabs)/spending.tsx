@@ -125,38 +125,6 @@ export default function Dashboard() {
             chart={<SpendDonut rows={s.byCategory} activeId={activeId} onSelect={setPicked} />}
           />
           <CategoryBars title="By card" rows={s.byCard} />
-
-          <View style={{ gap: theme.space.sm }}>
-            <Text variant="h4" accessibilityRole="header">
-              Recent purchases
-            </Text>
-            {s.recent.map((r) => (
-              <View
-                key={r.id}
-                accessible
-                accessibilityLabel={`${r.merchant}, ${r.account_name}, ${r.date}`}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.space.md,
-                  paddingVertical: theme.space.sm,
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.color.border.default,
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={{ fontFamily: 'JBMono-Medium' }}>
-                    {r.merchant}
-                  </Text>
-                  <Text variant="body-sm" tone="secondary" numberOfLines={1}>
-                    {r.mask ? `${r.account_name} •••• ${r.mask}` : r.account_name}
-                    {r.pending ? ' · pending' : ''}
-                  </Text>
-                </View>
-                <Money cents={r.amount_cents} variant="body-sm" />
-              </View>
-            ))}
-          </View>
         </>
       )}
     </ScrollView>

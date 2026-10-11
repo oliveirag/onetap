@@ -7,7 +7,6 @@ export type DashboardSummary = {
   cardCount: number;
   byCategory: { id: CategoryId; label: string; cents: number }[];
   byCard: { id: string; label: string; cents: number }[];
-  recent: CardSpendingRow[];
 };
 
 // "This month" = the phone's calendar month, matched on Plaid's YYYY-MM-DD dates.
@@ -31,6 +30,5 @@ export function summarizeCards(rows: CardSpendingRow[], now = new Date()): Dashb
     cardCount: byCard.size,
     byCategory: [...byCat].map(([id, cents]) => ({ id, label: CATEGORIES[id].label, cents })).sort((a, b) => b.cents - a.cents),
     byCard: [...byCard].map(([id, c]) => ({ id, ...c })).sort((a, b) => b.cents - a.cents),
-    recent: inMonth.slice(0, 5),
   };
 }

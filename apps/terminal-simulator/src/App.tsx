@@ -166,16 +166,22 @@ export function App() {
             <div>{txn?.merchantName ?? merchant?.merchantName ?? 'Merchant'}</div>
             <div className="mono">{txn?.reference ?? 'No transaction'}</div>
           </div>
-          <div className="amount">{formatCents(txn?.amountCents ?? parseDollarsToCents(amount) ?? 0)}</div>
-          {/* Keyed by phase so each state change replays its entrance. */}
-          <div className="state" key={phase}>
-            {phase === 'idle' && <><div className="big">Ready</div><p>Enter a sale to begin.</p></>}
-            {phase === 'waiting' && <><NfcIcon /><div className="big">Tap Reclaimed Card</div><p>Waiting for card · {secondsLeft}s</p></>}
-            {phase === 'authorizing' && <><div className="spinner" /><div className="big">Authorizing…</div><p>Simulated authorization in progress</p></>}
-            {phase === 'approved' && <><ResultMark kind="ok" /><div className="big">Approved</div><p>Funded by {txn?.fundingAccountName} (mock)</p></>}
-            {phase === 'declined' && <><ResultMark kind="bad" /><div className="big">{RESULT_COPY[txn?.authorizationResult ?? 'DECLINED']}</div><p>{txn?.declineReason}</p></>}
-            {phase === 'expired' && <><div className="big">Checkout ended</div><p>{txn?.declineReason}</p></>}
-          </div>
+          {phase === 'approved' && txn ? (
+            // Keyed by transaction so the print-in replays for each new sale.
+            <Receipt key={txn.id} txn={txn} auth={auth} category={config?.merchants.find((m) => m.merchantId === txn.merchantId)?.category} />
+          ) : (
+            <>
+              <div className="amount">{formatCents(txn?.amountCents ?? parseDollarsToCents(amount) ?? 0)}</div>
+              {/* Keyed by phase so each state change replays its entrance. */}
+              <div className="state" key={phase}>
+                {phase === 'idle' && <><div className="big">Ready</div><p>Enter a sale to begin.</p></>}
+                {phase === 'waiting' && <><NfcIcon /><div className="big">Tap Reclaimed Card</div><p>Waiting for card · {secondsLeft}s</p></>}
+                {phase === 'authorizing' && <><div className="spinner" /><div className="big">Authorizing…</div><p>Simulated authorization in progress</p></>}
+                {phase === 'declined' && <><ResultMark kind="bad" /><div className="big">{RESULT_COPY[txn?.authorizationResult ?? 'DECLINED']}</div><p>{txn?.declineReason}</p></>}
+                {phase === 'expired' && <><div className="big">Checkout ended</div><p>{txn?.declineReason}</p></>}
+              </div>
+            </>
+          )}
           {txn && (
             <dl className="facts">
               <div><dt>Status</dt><dd>{txn.state}</dd></div>
@@ -214,10 +220,50 @@ function Pill({ ok, label, neutral }: { ok: boolean; label: string; neutral?: bo
   return <span className={`pill ${neutral ? 'neutral' : ok ? 'ok' : 'bad'}`}><i />{label}</span>;
 }
 
-// Drawn on arrival: the stroke writes itself in, so the result reads as an event, not a swap.
-function ResultMark({ kind }: { kind: 'ok' | 'bad' }) {
+// The phone's receipt layout (mobile/src/components/onetap/Receipt.tsx), built from what the terminal knows:
+// merchant, amount, category, time, the funding account that approved, and every account tried in order.
+// Reward and multiplier lines are left out: the terminal's transaction doesn't carry them.
+function Receipt({ txn, auth, category }: { txn: SimulatedTransactionDto; auth: AuthorizationDto | null; category?: string }) {
+  const when = new Date(txn.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const attempts = [...(auth?.fundingAttempts ?? [])].sort((a, b) => a.sequence - b.sequence);
   return (
-    <svg className={`mark-result ${kind}`} viewBox="0 0 64 64" aria-hidden>
+    <article className="receipt" aria-label={`Approved. ${txn.merchantName}, ${formatCents(txn.amountCents)}, routed to ${txn.fundingAccountName ?? 'your card'}.`}>
+      <div className="receipt-status h4"><ResultMark kind="ok" small />Approved</div>
+      <div className="receipt-row">
+        <h3 className="h4">{txn.merchantName}</h3>
+        <span className="h4 money">{formatCents(txn.amountCents)}</span>
+      </div>
+      <p className="body-sm secondary">{category ? `${category}, ` : ''}{when}</p>
+
+      <hr className="tear" />
+
+      <p className="body-sm secondary">Routed to</p>
+      <p className="h3 routed">{txn.fundingAccountName ?? 'Your card'}</p>
+      <p className="secondary">Mock funding account</p>
+
+      <hr className="tear" />
+
+      <h4 className="h4 receipt-title">Cards tried</h4>
+      {attempts.map((a) => {
+        const chosen = a.fundingAccountId === txn.fundingAccountId && a.result === 'APPROVED';
+        return (
+          <div key={a.sequence} className={`receipt-line body-sm${chosen ? ' chosen' : ''}`}>
+            <span className="check">{chosen ? <svg viewBox="0 0 16 16" aria-hidden><path d="M3 8.5l3.2 3L13 4.5" /></svg> : null}</span>
+            <span className="name">{a.fundingAccountName}</span>
+            <span className="leader" aria-hidden />
+            <span className="value">{RESULT_COPY[a.result] ?? a.result}</span>
+          </div>
+        );
+      })}
+      {attempts.length <= 1 && <p className="body-sm secondary receipt-foot">No other cards were needed.</p>}
+    </article>
+  );
+}
+
+// Drawn on arrival: the stroke writes itself in, so the result reads as an event, not a swap.
+function ResultMark({ kind, small }: { kind: 'ok' | 'bad'; small?: boolean }) {
+  return (
+    <svg className={`mark-result ${kind}${small ? ' small' : ''}`} viewBox="0 0 64 64" aria-hidden>
       <circle cx="32" cy="32" r="28" />
       {kind === 'ok' ? <path pathLength={1} d="M20 33l8 8 16-17" /> : <path pathLength={1} d="M23 23l18 18M41 23L23 41" />}
     </svg>
