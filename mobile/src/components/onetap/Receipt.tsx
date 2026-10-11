@@ -19,8 +19,8 @@ const printIn = () => {
   return {
     initialValues: { opacity: 0, transform: [{ translateY: -12 }] },
     animations: {
-      opacity: withTiming(1, { duration: 250, easing: ease.out }),
-      transform: [{ translateY: withTiming(0, { duration: 250, easing: ease.out }) }],
+      opacity: withTiming(1, { duration: duration.modal, easing: ease.out }),
+      transform: [{ translateY: withTiming(0, { duration: duration.modal, easing: ease.out }) }],
     },
   };
 };
@@ -30,8 +30,8 @@ const rewardIn = () => {
   return {
     initialValues: { opacity: 0, transform: [{ scale: scale.enter }] },
     animations: {
-      opacity: withDelay(80, withTiming(1, { duration: 200, easing: ease.out })),
-      transform: [{ scale: withDelay(80, withSpring(1, spring.default)) }],
+      opacity: withDelay(duration.stagger, withTiming(1, { duration: duration.base, easing: ease.out })),
+      transform: [{ scale: withDelay(duration.stagger, withSpring(1, spring.default)) }],
     },
   };
 };
@@ -52,7 +52,7 @@ export function Receipt({ tx, cardName, cardMask }: { tx: TransactionRow; cardNa
   return (
     <Animated.View entering={reduceMotion ? fadeOnly : printIn}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.space.md }}>
-        <Text variant="h4" style={{ flexShrink: 1 }}>
+        <Text variant="h4" accessibilityRole="header" style={{ flexShrink: 1 }}>
           {tx.merchant_name}
         </Text>
         <Money cents={tx.amount_cents} variant="h4" />

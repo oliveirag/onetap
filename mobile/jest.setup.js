@@ -5,6 +5,7 @@ jest.mock('@react-native-async-storage/async-storage', () => require('@react-nat
 jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => jest.fn()),
   fetch: jest.fn(() => Promise.resolve({ isConnected: true })),
+  useNetInfo: jest.fn(() => ({ isConnected: true, isInternetReachable: true })),
 }));
 
 // Reanimated 4 and Worklets need their JS mocks under Jest (no native runtime).

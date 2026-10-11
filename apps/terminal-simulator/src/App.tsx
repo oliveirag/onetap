@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatCents, parseDollarsToCents, TEST_MODE_BANNER, type AuthorizationDto, type HardwareStatusDto, type SimulatedTransactionDto, type TestMerchant } from '@reclaimed/shared';
 import { gateway, GatewayError, type GatewayConfig } from './api';
 
-type LogEntry = { at: string; text: string; tone?: 'ok' | 'bad' | 'info' };
+type LogEntry = { id: number; at: string; text: string; tone?: 'ok' | 'bad' | 'info' };
+
+let logSeq = 0;
 
 const RESULT_COPY: Record<string, string> = {
   APPROVED: 'Approved',
@@ -30,7 +32,7 @@ export function App() {
   const [now, setNow] = useState(Date.now());
   const txnId = useRef<string | null>(null);
 
-  const addLog = useCallback((text: string, tone?: LogEntry['tone']) => setLog((l) => [{ at: new Date().toLocaleTimeString(), text, tone }, ...l].slice(0, 40)), []);
+  const addLog = useCallback((text: string, tone?: LogEntry['tone']) => setLog((l) => [{ id: ++logSeq, at: new Date().toLocaleTimeString(), text, tone }, ...l].slice(0, 40)), []);
 
   const refreshStatus = useCallback(() => gateway.status().then(setStatus).catch((e: Error) => setError(e.message)), []);
   const refreshTxn = useCallback(async () => {
@@ -165,12 +167,13 @@ export function App() {
             <div className="mono">{txn?.reference ?? 'No transaction'}</div>
           </div>
           <div className="amount">{formatCents(txn?.amountCents ?? parseDollarsToCents(amount) ?? 0)}</div>
-          <div className="state">
+          {/* Keyed by phase so each state change replays its entrance. */}
+          <div className="state" key={phase}>
             {phase === 'idle' && <><div className="big">Ready</div><p>Enter a sale to begin.</p></>}
             {phase === 'waiting' && <><NfcIcon /><div className="big">Tap Reclaimed Card</div><p>Waiting for card · {secondsLeft}s</p></>}
             {phase === 'authorizing' && <><div className="spinner" /><div className="big">Authorizing…</div><p>Simulated authorization in progress</p></>}
-            {phase === 'approved' && <><div className="big">✓ Approved</div><p>Funded by {txn?.fundingAccountName} (mock)</p></>}
-            {phase === 'declined' && <><div className="big">✕ {RESULT_COPY[txn?.authorizationResult ?? 'DECLINED']}</div><p>{txn?.declineReason}</p></>}
+            {phase === 'approved' && <><ResultMark kind="ok" /><div className="big">Approved</div><p>Funded by {txn?.fundingAccountName} (mock)</p></>}
+            {phase === 'declined' && <><ResultMark kind="bad" /><div className="big">{RESULT_COPY[txn?.authorizationResult ?? 'DECLINED']}</div><p>{txn?.declineReason}</p></>}
             {phase === 'expired' && <><div className="big">Checkout ended</div><p>{txn?.declineReason}</p></>}
           </div>
           {txn && (
@@ -199,7 +202,7 @@ export function App() {
         <section className="panel log">
           <h2>Activity</h2>
           {reader && <p className="muted small">Last card: {reader.lastUidMasked ?? '—'} {reader.lastCardType ? `(${reader.lastCardType})` : ''} · {reader.lastCardPresentAt ? new Date(reader.lastCardPresentAt).toLocaleTimeString() : 'never'}</p>}
-          <ul>{log.map((l, i) => <li key={i} className={l.tone}><time>{l.at}</time>{l.text}</li>)}</ul>
+          <ul>{log.map((l) => <li key={l.id} className={l.tone}><time>{l.at}</time>{l.text}</li>)}</ul>
           {log.length === 0 && <p className="muted small">Taps, reader events and transaction updates appear here in real time.</p>}
         </section>
       </main>
@@ -209,6 +212,16 @@ export function App() {
 
 function Pill({ ok, label, neutral }: { ok: boolean; label: string; neutral?: boolean }) {
   return <span className={`pill ${neutral ? 'neutral' : ok ? 'ok' : 'bad'}`}><i />{label}</span>;
+}
+
+// Drawn on arrival: the stroke writes itself in, so the result reads as an event, not a swap.
+function ResultMark({ kind }: { kind: 'ok' | 'bad' }) {
+  return (
+    <svg className={`mark-result ${kind}`} viewBox="0 0 64 64" aria-hidden>
+      <circle cx="32" cy="32" r="28" />
+      {kind === 'ok' ? <path pathLength={1} d="M20 33l8 8 16-17" /> : <path pathLength={1} d="M23 23l18 18M41 23L23 41" />}
+    </svg>
+  );
 }
 
 function NfcIcon() {
