@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, build (mock services, no NFC hardware)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_ENV: test
+      PAYMENT_MODE: mock
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix mobile
+          npm ci --prefix reader
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: |
+          npm run typecheck
+          npm run typecheck:mobile
+      - name: Tests (PGlite Postgres, mocked Plaid/Lithic/NFC)
+        run: |
+          npm test
+          npm --prefix reader test
+      - name: Build
+        run: npm run build

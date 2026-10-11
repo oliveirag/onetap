@@ -79,3 +79,11 @@ Thumbs.db
 .claude/settings.local.json
 .claude/worktrees/
 CLAUDE.local.md
+
+# Backend workspace (apps/*, packages/*, reader/)
+.env.*
+!.env.example
+packages/database/supabase/.branches/
+packages/database/supabase/.temp/
+.hardware-test-results/
+secrets.local
