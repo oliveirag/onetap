@@ -9,6 +9,7 @@ import { Money } from '@/components/ui/Money';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
 import { groupByDay } from '@/lib/feed';
+import { formatCents } from '@/lib/money';
 import { fakeTap } from '@/lib/mocks/fakeTap';
 import { useProfile, useOneTapCard, useSpending, useTransactions, useUserCards } from '@/lib/queries';
 import { USE_MOCKS } from '@/lib/supabase';
@@ -27,7 +28,8 @@ export default function Home() {
   const names = new Map((cards.data ?? []).map((c) => [c.id, c.card_product?.name ?? c.account_name]));
   const auto = profile.data?.routing_mode !== 'manual';
   const manualName = profile.data?.manual_card_id ? names.get(profile.data.manual_card_id) : undefined;
-  const status = !profile.data ? undefined : auto ? 'Best card, automatically' : manualName ? `Always ${manualName}` : 'Choose a card';
+  const status =
+    card.data?.state === 'paused' ? 'Frozen' : !profile.data ? undefined : auto ? 'Best card, automatically' : manualName ? `Always ${manualName}` : 'Choose a card';
   // Dev only: long-press the card to simulate a tap at the store (mock mode).
   const devTap = USE_MOCKS && __DEV__ && profile.data && cards.data ? () => fakeTap(profile.data, cards.data) : undefined;
 
@@ -38,7 +40,7 @@ export default function Home() {
       contentContainerStyle={{ padding: theme.pageMargin, paddingBottom: theme.space['3xl'], gap: theme.space.xl }}
     >
       {card.data ? (
-        <OneTapCard last4={card.data.last4} status={status} auto={auto} onLongPress={devTap} />
+        <OneTapCard last4={card.data.last4} status={status} auto={auto && card.data.state !== 'paused'} onLongPress={devTap} />
       ) : (
         <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />
       )}
@@ -125,13 +127,23 @@ function MonthSummary({ spending }: { spending: ReturnType<typeof useSpending> }
           </Text>
         </View>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Money cents={s.rewardsCents} reward variant="h3" roll />
+          <Money cents={s.extraCents} reward={s.extraCents >= 0} variant="h3" roll />
           <Text variant="body-sm" tone="secondary">
-            Earned this month
+            Reclaimed this month
           </Text>
         </View>
       </View>
-      {s.hasSeeded ? <DemoLabel text="Includes demo history" /> : null}
+      <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>
+        {formatCents(s.rewardsCents)} earned in rewards. Reclaimed is what routing earned beyond your default card.
+      </Text>
+      {s.projectionDollars != null ? (
+        <Text variant="body-sm" style={{ fontVariant: ['tabular-nums'] }}>
+          On pace to reclaim about ${s.projectionDollars.toLocaleString('en-US')} a year.
+        </Text>
+      ) : null}
+      {s.hasSeeded || s.projectionDollars != null ? (
+        <DemoLabel text={[s.hasSeeded && 'Includes demo history', s.projectionDollars != null && 'yearly figure is an estimate'].filter(Boolean).join(' · ')} />
+      ) : null}
     </View>
   );
 }

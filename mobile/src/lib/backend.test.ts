@@ -21,6 +21,7 @@ const funding = (over: Partial<DbFundingAccount> = {}): DbFundingAccount => ({
   current_balance_cents: '84217',
   credit_limit_cents: 1_500_000,
   status: 'ACTIVE',
+  financial_account_id: 'plaid-acct-1',
   card_product: goldProduct,
   ...over,
 });
@@ -71,6 +72,7 @@ describe('backend row mapping', () => {
       credit_limit_cents: 1_500_000,
       points_balance: 0,
       is_active: true,
+      financial_account_id: 'plaid-acct-1',
       card_product: {
         id: 'cp-amex-gold',
         issuer: 'American Express',

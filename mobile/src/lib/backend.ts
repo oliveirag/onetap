@@ -47,6 +47,7 @@ export type DbFundingAccount = {
   current_balance_cents: Numeric;
   credit_limit_cents: Numeric;
   status: string;
+  financial_account_id: string | null;
   card_product: DbProduct | null;
 };
 
@@ -76,7 +77,7 @@ export type DbPayment = {
 };
 
 const PRODUCT_COLUMNS = 'product_slug, issuer_name, product_name, card_network, reward_type, reward_currency, cents_per_point, card_art, is_generic';
-export const FUNDING_COLUMNS = `id, display_name, last4, match_source, priority, current_balance_cents, credit_limit_cents, status, card_product:card_products(${PRODUCT_COLUMNS})`;
+export const FUNDING_COLUMNS = `id, display_name, last4, match_source, priority, current_balance_cents, credit_limit_cents, status, financial_account_id, card_product:card_products(${PRODUCT_COLUMNS})`;
 export const PAYMENT_COLUMNS =
   'id, user_id, reclaimed_card_id, processor, processor_reference, merchant_id, merchant_name, mcc, amount_cents, state, funding_account_id, ' +
   'category_id, routing_mode, decision_reason, multiplier, points_earned, reward_value_cents, baseline_value_cents, best_value_cents, alternatives, is_seeded, created_at';
@@ -113,6 +114,7 @@ export function toUserCard(r: DbFundingAccount): UserCardRow {
     credit_limit_cents: num(r.credit_limit_cents),
     points_balance: 0, // not tracked for simulated funding accounts
     is_active: r.status === 'ACTIVE',
+    financial_account_id: r.financial_account_id,
     card_product: product,
   };
 }

@@ -96,6 +96,7 @@ export interface UserCardRow {
   credit_limit_cents: number;
   points_balance: number;
   is_active: boolean;
+  financial_account_id?: string | null; // the Plaid account behind it; joins card_spending rows
   card_product?: CardProduct;    // present when selected with card_products(*)
 }
 

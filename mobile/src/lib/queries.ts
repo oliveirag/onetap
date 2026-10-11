@@ -8,7 +8,7 @@ import { live } from './backend';
 import { mockStore } from './mocks/store';
 import { aggregate } from './spending';
 import { USE_MOCKS } from './supabase';
-import type { ProfileRow, RoutingMode, TransactionRow, UserCardRow } from './types';
+import type { OneTapCardRow, ProfileRow, RoutingMode, TransactionRow, UserCardRow } from './types';
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnReconnect: true, retry: 1, staleTime: 30_000 } },
@@ -191,6 +191,25 @@ export function useLinkPhysicalCard() {
   return useMutation({
     mutationFn: api.linkPhysicalCard,
     onSuccess: (card) => qc.setQueryData(keys.oneTapCard, card),
+  });
+}
+
+// Optimistic, like the mode toggle: the switch flips at once and rolls back if the write fails.
+export function useSetCardFrozen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ card, frozen }: { card: OneTapCardRow; frozen: boolean }) => api.setCardFrozen(card, frozen),
+    onMutate: async ({ card, frozen }) => {
+      await qc.cancelQueries({ queryKey: keys.oneTapCard });
+      const previous = qc.getQueryData<OneTapCardRow | null>(keys.oneTapCard);
+      qc.setQueryData(keys.oneTapCard, { ...card, state: frozen ? 'paused' : 'open' });
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(keys.oneTapCard, ctx.previous);
+    },
+    onSuccess: (card) => qc.setQueryData(keys.oneTapCard, card),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.oneTapCard }),
   });
 }
 

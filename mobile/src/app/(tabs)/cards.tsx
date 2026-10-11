@@ -10,6 +10,7 @@ import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
+import { Toggle } from '@/components/ui/Toggle';
 import { apiMessage } from '@/lib/api';
 import { LinkCanceled } from '@/lib/plaid';
 import {
@@ -21,6 +22,7 @@ import {
   useOneTapCard,
   useProfile,
   useReorderCards,
+  useSetCardFrozen,
   useSetDefaultCard,
   useUserCards,
 } from '@/lib/queries';
@@ -44,9 +46,11 @@ export default function Cards() {
   const oneTap = useOneTapCard();
   const createCard = useCreateOneTapCard();
   const linkPhysical = useLinkPhysicalCard();
+  const setFrozen = useSetCardFrozen();
   const card = oneTap.data ?? createCard.data ?? null;
+  const frozen = card?.state === 'paused';
   const cardCount = cards.data?.length ?? 0;
-  const cardError = createCard.error ?? linkPhysical.error;
+  const cardError = createCard.error ?? linkPhysical.error ?? setFrozen.error;
   const defaultId = profile.data?.default_card_id ?? null;
   const manualCard = profile.data?.routing_mode === 'manual' ? cards.data?.find((c) => c.id === profile.data?.manual_card_id) : undefined;
   const manualName = manualCard ? (manualCard.card_product?.name ?? manualCard.account_name) : undefined;
@@ -85,7 +89,11 @@ export default function Cards() {
         {oneTap.isLoading ? (
           <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />
         ) : (
-          <OneTapCard last4={card?.last4 ?? '••••'} status={manualName ? `Always ${manualName}` : card ? 'Best card, automatically' : undefined} auto={!manualName} />
+          <OneTapCard
+            last4={card?.last4 ?? '••••'}
+            status={frozen ? 'Frozen' : manualName ? `Always ${manualName}` : card ? 'Best card, automatically' : undefined}
+            auto={!manualName && !frozen}
+          />
         )}
         <Text variant="body-sm" tone="secondary">
           {cardCount
@@ -96,6 +104,14 @@ export default function Cards() {
           <Text variant="body-sm" tone="secondary">
             {card.physical_linked ? 'Digital and physical card linked.' : 'Digital card ready. The physical card is not linked yet.'}
           </Text>
+        ) : null}
+        {card ? (
+          <Toggle
+            label="Freeze card"
+            description={frozen ? 'Every tap is declined until you unfreeze it.' : 'Declines every tap at once, without cancelling the card.'}
+            value={frozen}
+            onValueChange={(v) => setFrozen.mutate({ card, frozen: v })}
+          />
         ) : null}
         <FormError text={cardError ? (apiMessage(cardError) ?? "That didn't finish. Check your connection and try again.") : null} />
         <Hint text={linkPhysical.isPending ? 'Hold your physical OneTap card on the reader.' : null} />
