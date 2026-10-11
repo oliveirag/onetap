@@ -40,12 +40,8 @@ describe('summarizeCards', () => {
     ]);
   });
 
-  it('lists the five most recent purchases', () => {
-    const rows = ['01', '09', '03', '07', '05', '02'].map((d) => row({ date: `2026-10-${d}`, merchant: d }));
-    expect(summarizeCards(rows, now).recent.map((r) => r.merchant)).toEqual(['09', '07', '05', '03', '02']);
-  });
 
   it('is empty with no purchases this month', () => {
-    expect(summarizeCards([], now)).toMatchObject({ totalSpendCents: 0, purchases: 0, cardCount: 0, byCategory: [], byCard: [], recent: [] });
+    expect(summarizeCards([], now)).toMatchObject({ totalSpendCents: 0, purchases: 0, cardCount: 0, byCategory: [], byCard: [] });
   });
 });

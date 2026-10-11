@@ -166,6 +166,7 @@ export default function Cards() {
       <View style={{ marginTop: theme.space.xl }}>
         <ConfirmMorph
           label="Sign out"
+          variant="secondary"
           prompt="Sign out of OneTap on this phone?"
           confirmLabel="Sign out"
           pendingLabel="Signing out"

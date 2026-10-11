@@ -30,6 +30,7 @@ export function ConfirmMorph({
   doneLabel,
   errorLabel,
   onConfirm,
+  variant = 'ghost',
 }: {
   label: string;
   prompt: string;
@@ -38,6 +39,8 @@ export function ConfirmMorph({
   doneLabel: string;
   errorLabel: string;
   onConfirm: () => Promise<unknown>;
+  // The resting button's look; `secondary` gives it a visible box.
+  variant?: 'ghost' | 'secondary';
 }) {
   const { theme } = useTheme();
   const [face, setFace] = useState<Face>('idle');
@@ -77,7 +80,7 @@ export function ConfirmMorph({
     <Animated.View layout={resize} style={{ alignSelf: 'flex-start', maxWidth: '100%' }}>
       {face === 'idle' ? (
         <Animated.View key="idle" entering={faceIn} exiting={faceOut}>
-          <Button variant="ghost" label={label} onPress={open} />
+          <Button variant={variant} label={label} onPress={open} />
         </Animated.View>
       ) : face === 'confirming' ? (
         <Animated.View key="confirming" entering={faceIn} exiting={faceOut} accessibilityRole="alert" style={{ gap: theme.space.sm }}>
