@@ -17,7 +17,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 // PRD F2 fallback (sandbox test accounts) and lists every account returned.
 export default function Connect() {
   const { theme } = useTheme();
-  const { session, setStep } = useAuth();
+  const { session, setStep, signOut } = useAuth();
   const connect = useConnectTestAccounts();
   const first = session?.fullName?.split(' ')[0];
 
@@ -40,6 +40,8 @@ export default function Connect() {
           ) : (
             <Button label="Connect cards" loading={connect.isPending} onPress={() => connect.mutate()} />
           )}
+          {/* The only way out of setup: signing out returns to Welcome. */}
+          <Button variant="ghost" label="Use a different account" onPress={() => signOut().catch(() => {})} />
         </>
       }
     >

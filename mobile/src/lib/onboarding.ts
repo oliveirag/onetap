@@ -1,5 +1,5 @@
 import type { IconName } from '@/components/ui/iconNames';
-import { CATALOG, productById } from './catalog';
+import { productById } from './catalog';
 import { CATEGORIES } from './categories';
 import { MERCHANTS, type MockMerchant } from './mocks/fixtures';
 import type { CategoryId } from './types';
@@ -27,36 +27,24 @@ export const PAINS: { id: PainId; label: string; fix: string; icon: IconName }[]
   { id: 'missing', label: "I don't know how much I'm missing", fix: 'See how much extra you earned compared with using one card, every month.', icon: 'chart' },
 ];
 
-export const STATEMENTS = [
-  "I've paid with the wrong card this week.",
-  'I have a card I barely use because I forget what it is for.',
-  "I've looked up a card's bonus categories at the register.",
-  'Rewards feel like a game I keep losing.',
-];
-
 export type Answers = {
   goal: GoalId | null;
   pains: PainId[];
-  relate: boolean[]; // one per STATEMENTS entry, in order
-  wallet: string[]; // card_product ids from CATALOG
   spend: CategoryId[];
 };
 
-export const emptyAnswers: Answers = { goal: null, pains: [], relate: [], wallet: [], spend: [] };
+export const emptyAnswers: Answers = { goal: null, pains: [], spend: [] };
 
-// Shown when someone skips picking cards, so the demo still has something to route between.
+// Their real cards arrive with Plaid after sign-up, so the plan uses three popular cards as a
+// labeled example of what routing does with their spending.
 export const SAMPLE_WALLET = ['cp-amex-gold', 'cp-chase-sapphire-preferred', 'cp-citi-custom-cash'];
 const DEFAULT_SPEND: CategoryId[] = ['dining', 'groceries', 'gas'];
 
 // The screens before sign-up, in order. The progress pill counts these.
-export const FLOW = ['goal', 'pains', 'relate', 'solution', 'wallet', 'spend', 'building', 'demo', 'plan', 'name', 'account'] as const;
+export const FLOW = ['goal', 'pains', 'spend', 'building', 'plan', 'name', 'account'] as const;
 export type FlowStep = (typeof FLOW)[number];
 
-export function walletOf(a: Answers): { ids: string[]; sample: boolean } {
-  return a.wallet.length ? { ids: a.wallet, sample: false } : { ids: SAMPLE_WALLET, sample: true };
-}
-
-// Fixes for the pains they picked (up to three), falling back to the first three.
+// Fixes for the pains they picked (up to three), shown on the plan. Falls back to the first three.
 export function fixesFor(pains: PainId[]) {
   const picked = PAINS.filter((p) => pains.includes(p.id));
   return (picked.length ? picked : PAINS).slice(0, 3);
@@ -86,14 +74,12 @@ export type Plan = {
   oneCardName: string;
   totalCents: number;
   oneCardCents: number;
-  sample: boolean;
 };
 
 // One purchase per spend category they picked (topped up to three from the defaults), each routed
-// like Auto mode: highest value wins, a tie goes to the card picked first. The comparison is the
+// like Auto mode: highest value wins, a tie goes to the card listed first. The comparison is the
 // single card that would have earned the most across the same purchases, so the extra is honest.
-export function buildPlan(a: Answers): Plan {
-  const { ids, sample } = walletOf(a);
+export function buildPlan(a: Answers, ids: string[] = SAMPLE_WALLET): Plan {
   const cats = [...new Set([...a.spend, ...DEFAULT_SPEND])].slice(0, 3);
   const merchants = cats.map((c) => MERCHANTS.find((m) => m.category_id === c)!).filter(Boolean);
   const name = (id: string) => productById(id)?.name ?? 'Your card';
@@ -130,7 +116,6 @@ export function buildPlan(a: Answers): Plan {
     oneCardName: name(oneCard),
     totalCents: purchases.reduce((s, p) => s + p.valueCents, 0),
     oneCardCents: purchases.reduce((s, p) => s + p.oneCardValueCents, 0),
-    sample,
   };
 }
 
@@ -139,6 +124,11 @@ export function shareText(plan: Plan): string {
   return ['My OneTap plan', ...lines, '', 'One card at the register. The best of my cards on every purchase.'].join('\n');
 }
 
-export const catalogChoices = CATALOG.map((p) => ({ id: p.id, name: p.name, issuer: p.issuer, art: p.card_art }));
 
-export const progressOf = (step: FlowStep) => ({ index: FLOW.indexOf(step), total: FLOW.length });
+// Skipping personalization goes straight to the account, so the pill counts only those steps.
+export const SHORT_FLOW: FlowStep[] = ['name', 'account'];
+
+export const progressOf = (step: FlowStep, skipped = false) => {
+  const flow: readonly FlowStep[] = skipped ? SHORT_FLOW : FLOW;
+  return { index: flow.indexOf(step), total: flow.length };
+};

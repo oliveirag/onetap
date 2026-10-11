@@ -6,7 +6,16 @@ import { emptyAnswers, type Answers } from '@/lib/onboarding';
 const KEY = 'onetap.onboarding-answers';
 
 type Name = { first: string; last: string };
-type Ctx = { answers: Answers; update: (patch: Partial<Answers>) => void; clear: () => void; name: Name; setName: (n: Name) => void };
+type Ctx = {
+  answers: Answers;
+  update: (patch: Partial<Answers>) => void;
+  clear: () => void;
+  name: Name;
+  setName: (n: Name) => void;
+  // True when they chose "Skip for now" on the personalize screen.
+  skipped: boolean;
+  setSkipped: (s: boolean) => void;
+};
 const AnswersCtx = createContext<Ctx | null>(null);
 
 // Questionnaire answers before an account exists. Saved on the phone as they change, so closing
@@ -15,6 +24,7 @@ const AnswersCtx = createContext<Ctx | null>(null);
 export function AnswersProvider({ children }: { children: ReactNode }) {
   const [answers, setAnswers] = useState<Answers>(emptyAnswers);
   const [name, setName] = useState<Name>({ first: '', last: '' });
+  const [skipped, setSkipped] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(KEY)
@@ -33,10 +43,11 @@ export function AnswersProvider({ children }: { children: ReactNode }) {
   const clear = useCallback(() => {
     setAnswers(emptyAnswers);
     setName({ first: '', last: '' });
+    setSkipped(false);
     AsyncStorage.removeItem(KEY).catch(() => {});
   }, []);
 
-  const value = useMemo(() => ({ answers, update, clear, name, setName }), [answers, update, clear, name]);
+  const value = useMemo(() => ({ answers, update, clear, name, setName, skipped, setSkipped }), [answers, update, clear, name, skipped]);
   return <AnswersCtx.Provider value={value}>{children}</AnswersCtx.Provider>;
 }
 

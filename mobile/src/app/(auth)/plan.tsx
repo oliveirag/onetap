@@ -10,11 +10,12 @@ import { Icon } from '@/components/ui/Icon';
 import { Money } from '@/components/ui/Money';
 import { Text } from '@/components/ui/Text';
 import { formatMultiplier, formatReward } from '@/lib/money';
-import { buildPlan, progressOf, shareText } from '@/lib/onboarding';
+import { buildPlan, fixesFor, progressOf, shareText } from '@/lib/onboarding';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// Value delivery: what they just earned, and the rule OneTap will follow for every category.
-// Sharing sends the plan as text. Creating the account is how they keep it.
+// Value delivery, built from their answers: what routing earns on purchases like theirs (priced on
+// three popular cards, labeled), the fixes for what they said gets in the way, and the rule per
+// category. Their real cards connect with Plaid after sign-up. Creating the account keeps the plan.
 export default function PlanScreen() {
   const { theme } = useTheme();
   const { answers } = useAnswers();
@@ -26,8 +27,8 @@ export default function PlanScreen() {
       title="Your OneTap plan"
       subtitle={
         extra > 0
-          ? `On those ${plan.purchases.length} purchases you earned ${formatReward(extra)} more than ${plan.oneCardName} alone.`
-          : 'With one card there is nothing to switch between yet. Add your other cards after you sign up.'
+          ? `On ${plan.purchases.length} purchases like yours, OneTap earns ${formatReward(extra)} more than using ${plan.oneCardName} for everything.`
+          : 'Connect your cards after you sign up to see where each purchase would go.'
       }
       progress={progressOf('plan')}
       footer={
@@ -62,6 +63,18 @@ export default function PlanScreen() {
         </View>
       </View>
 
+      <View style={{ gap: theme.space.md }}>
+        <Text variant="h4" accessibilityRole="header">
+          What changes for you
+        </Text>
+        {fixesFor(answers.pains).map((p) => (
+          <View key={p.id} style={{ flexDirection: 'row', gap: theme.space.md }}>
+            <Icon name={p.icon} size={18} />
+            <Text style={{ flex: 1 }}>{p.fix}</Text>
+          </View>
+        ))}
+      </View>
+
       <View style={{ gap: theme.space.xs }}>
         <Text variant="h4" accessibilityRole="header" style={{ marginBottom: theme.space.sm }}>
           Where each purchase goes
@@ -84,7 +97,7 @@ export default function PlanScreen() {
           </View>
         ))}
       </View>
-      <DemoLabel text={plan.sample ? 'Sample wallet. Reward rates are estimates' : 'Reward rates are estimates'} />
+      <DemoLabel text="Example with three popular cards. Reward rates are estimates" />
     </FlowScreen>
   );
 }
