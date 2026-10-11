@@ -63,28 +63,6 @@ export class PlaidSdkGateway implements PlaidGateway {
     }
   }
 
-  async createSandboxPublicToken(args: Parameters<PlaidGateway['createSandboxPublicToken']>[0]) {
-    // Plaid's custom Sandbox user: the JSON config goes in override_password.
-    const config = {
-      override_accounts: args.creditCards.map((c) => ({
-        type: 'credit',
-        subtype: 'credit card',
-        starting_balance: c.balance,
-        meta: { name: c.name, official_name: c.name, mask: c.mask, limit: c.limit },
-      })),
-    };
-    try {
-      const { data } = await this.api.sandboxPublicTokenCreate({
-        institution_id: args.institutionId,
-        initial_products: this.products,
-        options: { override_username: 'user_custom', override_password: JSON.stringify(config) },
-      });
-      return data.public_token;
-    } catch (err) {
-      wrap(err);
-    }
-  }
-
   async exchangePublicToken(publicToken: string) {
     try {
       const { data } = await this.api.itemPublicTokenExchange({ public_token: publicToken });

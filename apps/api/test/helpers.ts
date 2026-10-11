@@ -128,3 +128,24 @@ export async function enrollCard(h: Harness, user: { auth: Record<string, string
   if (t.body.data?.outcome !== 'ENROLLED') throw new Error(`tap did not enroll: ${JSON.stringify(t.body)}`);
   return t.body.data.enrollment.reclaimedCardId as string;
 }
+
+/**
+ * Test data: two simulated credit accounts and a checking account, created through the public
+ * API. With a card id, they become its primary/secondary funding with fallback.
+ */
+export async function fundingSetup(h: Harness, user: { auth: Record<string, string> }, cardId?: string) {
+  const products = (await h.http().get('/api/v1/card-products').set(user.auth)).body.data as { id: string; productSlug: string }[];
+  const product = (slug: string) => products.find((p) => p.productSlug === slug)!.id;
+  const create = async (body: Record<string, unknown>) => {
+    const res = await h.http().post('/api/v1/mock-funding-accounts').set(user.auth).send(body);
+    if (res.status !== 201) throw new Error(`funding setup failed ${res.status} ${JSON.stringify(res.body)}`);
+    return res.body.data as { id: string; displayName: string };
+  };
+  const citi = await create({ displayName: 'Mock Citi', fictionalIssuer: 'Mock Citi (fictional)', kind: 'CREDIT', cardProductId: product('citi-double-cash'), limitOrBalanceCents: 200_000, priority: 1 });
+  const chase = await create({ displayName: 'Mock Chase', fictionalIssuer: 'Mock Chase (fictional)', kind: 'CREDIT', cardProductId: product('chase-sapphire-preferred'), limitOrBalanceCents: 500_000, priority: 2 });
+  const checking = await create({ displayName: 'Mock Checking', fictionalIssuer: 'Mock Bank (fictional)', kind: 'DEPOSIT', limitOrBalanceCents: 300_000, priority: 3 });
+  if (cardId) {
+    await h.http().put(`/api/v1/reclaimed-cards/${cardId}/funding`).set(user.auth).send({ primaryFundingAccountId: citi.id, secondaryFundingAccountId: chase.id, fallbackEnabled: true });
+  }
+  return { funding: [citi, chase, checking] };
+}

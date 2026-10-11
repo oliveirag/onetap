@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { LithicSandboxProcessor, LithicSdkGateway, type LithicGateway } from '../src/integrations/lithic/lithic.js';
-import { bridgePost, createHarness, createUser, enrollCard, tap, terminalReq } from './helpers.js';
+import { bridgePost, createHarness, createUser, enrollCard, fundingSetup, tap, terminalReq } from './helpers.js';
 
 const ASA_SECRET = `whsec_${randomBytes(24).toString('base64')}`;
 
@@ -50,7 +50,7 @@ describe('Lithic Sandbox adapter (mocked network, real signature verification)',
     const h = await createHarness({ lithic, processor: new LithicSandboxProcessor(lithic), env: { PAYMENT_MODE: 'lithic_sandbox', LITHIC_ASA_SECRET: ASA_SECRET } });
     const user = await createUser(h.db);
     const cardId = await enrollCard(h, user, '04AABBCCDDEE11');
-    await h.http().post('/api/v1/mock-funding-accounts/demo-setup').set(user.auth).send({ reclaimedCardId: cardId });
+    await fundingSetup(h, user, cardId);
     const mapped = await h.http().post(`/api/v1/reclaimed-cards/${cardId}/lithic-card`).set(user.auth);
     expect(mapped.body.data.lithicSandboxMapped).toBe(true);
 
@@ -68,8 +68,8 @@ describe('Lithic Sandbox adapter (mocked network, real signature verification)',
     const h = await createHarness({ lithic, processor: new LithicSandboxProcessor(lithic) });
     const user = await createUser(h.db);
     const cardId = await enrollCard(h, user, '04AABBCCDDEE22');
-    const setup = await h.http().post('/api/v1/mock-funding-accounts/demo-setup').set(user.auth).send({ reclaimedCardId: cardId });
-    await h.http().put(`/api/v1/reclaimed-cards/${cardId}/funding`).set(user.auth).send({ primaryFundingAccountId: setup.body.data.funding[0].id, secondaryFundingAccountId: null, fallbackEnabled: false });
+    const setup = await fundingSetup(h, user, cardId);
+    await h.http().put(`/api/v1/reclaimed-cards/${cardId}/funding`).set(user.auth).send({ primaryFundingAccountId: setup.funding[0]!.id, secondaryFundingAccountId: null, fallbackEnabled: false });
     await h.http().post(`/api/v1/reclaimed-cards/${cardId}/lithic-card`).set(user.auth);
     await terminalReq(h, 'POST', '/test-terminal/transactions', { merchantId: 'M1', merchantName: 'Shell', mcc: '5541', amountCents: 4_000, currency: 'USD' });
     const t = await bridgePost(h, '/hardware/tap-events', tap('04AABBCCDDEE22', { presentedAt: new Date(Date.now() + 5000).toISOString() }));
@@ -82,7 +82,7 @@ describe('Lithic Sandbox adapter (mocked network, real signature verification)',
     const h = await createHarness({ lithic, env: { LITHIC_ASA_SECRET: ASA_SECRET } });
     const user = await createUser(h.db);
     const cardId = await enrollCard(h, user, '04AABBCCDDEE33');
-    await h.http().post('/api/v1/mock-funding-accounts/demo-setup').set(user.auth).send({ reclaimedCardId: cardId });
+    await fundingSetup(h, user, cardId);
     const token = (await h.http().post(`/api/v1/reclaimed-cards/${cardId}/lithic-card`).set(user.auth)).body.data;
     const cardToken = (await h.db.query<{ lithic_card_token: string }>('select lithic_card_token from reclaimed_cards where id = $1', [cardId])).rows[0]!.lithic_card_token;
     expect(token.lithicSandboxMapped).toBe(true);

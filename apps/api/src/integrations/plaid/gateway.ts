@@ -58,14 +58,6 @@ export interface PlaidItemInfo {
   consentExpiresAt: string | null;
 }
 
-/** A credit card on a Plaid Sandbox custom test user. Amounts in dollars, as Plaid takes them. */
-export interface SandboxCreditCard {
-  name: string;
-  mask: string;
-  balance: number;
-  limit: number;
-}
-
 export interface PlaidGateway {
   createLinkToken(args: {
     userId: string;
@@ -76,8 +68,6 @@ export interface PlaidGateway {
     includeLiabilities: boolean;
   }): Promise<{ linkToken: string; expiration: string }>;
   exchangePublicToken(publicToken: string): Promise<{ accessToken: string; itemId: string }>;
-  /** Sandbox only: a public token for a custom test user ("user_custom") holding these credit cards. */
-  createSandboxPublicToken(args: { institutionId: string; creditCards: SandboxCreditCard[] }): Promise<string>;
   getItem(accessToken: string): Promise<PlaidItemInfo>;
   getInstitutionName(institutionId: string): Promise<string | null>;
   getAccounts(accessToken: string): Promise<PlaidAccount[]>;

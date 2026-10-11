@@ -1,6 +1,9 @@
 import { live } from './backend';
 import { mockChat } from './mocks/chat';
 import { mockStore } from './mocks/store';
+import { LinkFailed, openPlaidLink } from './plaid';
+import { Platform } from 'react-native';
+
 import { supabase, USE_MOCKS } from './supabase';
 import type { ChatRequest, ChatResponse, OneTapCardRow, UserCardRow } from './types';
 
@@ -40,16 +43,19 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 /** The backend's message when it has one written for people; otherwise null (use the screen's own copy). */
-export const apiMessage = (e: unknown) => (e instanceof ApiError ? e.message : null);
+export const apiMessage = (e: unknown) => (e instanceof ApiError || e instanceof LinkFailed ? e.message : null);
 
 export const api = {
   // Shared contract 4. Every number in the reply is computed by our backend; Claude only explains it.
   chat: (req: ChatRequest): Promise<ChatResponse> => (USE_MOCKS ? mockChat(req) : post<ChatResponse>('/chat', req)),
-  // PRD F2 fallback: the backend links a Plaid Sandbox test user (no Plaid Link screen), then the
-  // app reads the connected cards like any other time.
-  connectTestAccounts: async (): Promise<UserCardRow[]> => {
+  // PRD F2: Plaid Link -> the backend exchanges the token and imports the accounts -> each credit
+  // account becomes a routable card. Throws LinkCanceled if the user closes Link.
+  connectCards: async (): Promise<UserCardRow[]> => {
     if (USE_MOCKS) return later(800, () => mockStore.connectTestAccounts());
-    await post<{ cardIds: string[] }>('/onetap/connect-test-accounts', {});
+    const { linkToken } = await post<{ linkToken: string }>('/plaid/link-token', { platform: Platform.OS === 'android' ? 'android' : 'ios' });
+    const linked = await openPlaidLink(linkToken);
+    await post('/plaid/exchange-token', { publicToken: linked.publicToken, institution: linked.institution ?? undefined });
+    await post<{ cardIds: string[] }>('/onetap/connect-cards', {});
     return live.userCards();
   },
   // Links the physical OneTap card: the backend waits for it to be tapped on the store reader.

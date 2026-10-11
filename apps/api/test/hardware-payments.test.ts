@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { bridgePost, createHarness, createUser, enrollCard, READER, tap, terminalReq, type Harness } from './helpers.js';
+import { bridgePost, createHarness, fundingSetup, createUser, enrollCard, READER, tap, terminalReq, type Harness } from './helpers.js';
 
 const UID_A = '04A1B2C3D4E5F6';
 const UID_B = '04FFEEDDCCBBAA';
@@ -8,9 +8,8 @@ const UID_B = '04FFEEDDCCBBAA';
 async function demoUser(h: Harness) {
   const user = await createUser(h.db);
   const cardId = await enrollCard(h, user, UID_A);
-  const setup = await h.http().post('/api/v1/mock-funding-accounts/demo-setup').set(user.auth).send({ reclaimedCardId: cardId });
-  expect(setup.status).toBe(200);
-  return { user, cardId, funding: setup.body.data.funding as { id: string; displayName: string }[] };
+  const setup = await fundingSetup(h, user, cardId);
+  return { user, cardId, funding: setup.funding };
 }
 
 async function checkout(h: Harness, amountCents = 10_000, key?: string) {

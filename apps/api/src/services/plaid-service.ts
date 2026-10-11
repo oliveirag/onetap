@@ -1,6 +1,6 @@
 import { ReclaimedError, decimalToCents, type PlaidItemDto } from '@reclaimed/shared';
 import type { Database, Queryable } from '@reclaimed/database';
-import { PlaidApiError, type PlaidGateway, type PlaidTransaction, type SandboxCreditCard } from '../integrations/plaid/gateway.js';
+import { PlaidApiError, type PlaidGateway, type PlaidTransaction } from '../integrations/plaid/gateway.js';
 import type { TokenCipher } from '../lib/crypto.js';
 import type { Logger } from '../logger.js';
 import type { CardMatchingService } from './card-matching.js';
@@ -113,14 +113,6 @@ export class PlaidService {
     await this.syncTransactions(row.id).catch((err) => this.logger.warn({ err, itemId: row.id }, 'initial transaction sync deferred'));
     await this.refreshLiabilities(row.id).catch((err) => this.logger.warn({ err, itemId: row.id }, 'liabilities refresh skipped'));
     return { itemId: row.id, accountsImported };
-  }
-
-  /** PRD F2 fallback: links a Plaid Sandbox custom test user holding these credit cards, without Plaid Link. */
-  async connectSandboxTestUser(userId: string, creditCards: SandboxCreditCard[]): Promise<{ itemId: string; accountsImported: number }> {
-    const { gateway } = this.require();
-    const institutionId = 'ins_109508'; // First Platypus Bank, a Plaid Sandbox institution
-    const publicToken = await this.call(() => gateway.createSandboxPublicToken({ institutionId, creditCards }));
-    return this.exchangePublicToken(userId, publicToken, { id: institutionId });
   }
 
   async listItems(userId: string): Promise<PlaidItemDto[]> {

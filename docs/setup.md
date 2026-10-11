@@ -102,16 +102,15 @@ npm run hardware:test                # guided physical acceptance test
 
 See [hardware.md](hardware.md).
 
-## Demo A walkthrough (physical NFC purchase)
+## Demo walkthrough (physical NFC purchase)
 
 1. Plug in the ACR1252U, then run `npm run dev`. The bridge should log `reader READER_CONNECTED`.
-2. In the app: register → verify the email (Mailpit code) → **Cards → Reclaimed Card → Enroll a card** → tap the NFC card.
-3. On the same screen tap **Create demo accounts** to create Mock Citi ($2,000, primary), Mock Chase ($5,000, secondary) and Mock Checking.
-4. Terminal (http://localhost:5173): choose **Walmart**, enter **$100.00**, then **Start checkout**. The screen shows *Tap Reclaimed Card*.
-5. Tap the card. The terminal shows *Approved, funded by Mock Citi*, and the app's Activity shows the Walmart transaction.
-6. On the terminal: **Capture → Settle → Refund**. In the app, open the transaction to see the double-entry ledger.
-7. Freeze the card in the app, start a new checkout and tap: it is *Card frozen*.
-8. **Settings → Mock funding accounts → Stage balance** on Mock Citi (e.g. $1,990), check out $100 and tap. The fallback approves on Mock Chase.
+2. In the OneTap app: sign up and verify your email → **Connect cards** → sign in to a Plaid Sandbox bank in Plaid Link. Use your custom test user from the Plaid dashboard to get several credit cards; `user_good` / `pass_good` gives one.
+3. Check the card matches → pick Auto or Manual → **Create my card**, then tap the NFC card on the reader.
+4. Terminal (http://localhost:5173): choose a merchant (Starbucks is dining, Shell is gas), enter an amount, then **Start checkout**.
+5. Tap the card. The terminal shows the approval and the card it was routed to; the receipt opens on the phone.
+6. On the terminal: **Capture → Settle → Refund**.
+7. Freeze the card, start a new checkout and tap: it is *Card frozen*.
 
 ## Troubleshooting
 

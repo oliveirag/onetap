@@ -1,18 +1,8 @@
 import type { Database } from '@reclaimed/database';
 import { ReclaimedError } from '@reclaimed/shared';
 import type { Logger } from '../logger.js';
-import type { SandboxCreditCard } from '../integrations/plaid/gateway.js';
 import type { CardsService } from './cards-service.js';
 import type { HardwareService } from './hardware-service.js';
-import type { PlaidService } from './plaid-service.js';
-
-/** The test user's credit cards (PRD F2 fallback). Names hit catalog keywords, so they pre-match. */
-export const SANDBOX_TEST_CARDS: SandboxCreditCard[] = [
-  { name: 'American Express Gold Card', mask: '1008', balance: 842.17, limit: 15_000 },
-  { name: 'Chase Sapphire Preferred', mask: '4417', balance: 1_240.5, limit: 10_000 },
-  { name: 'Citi Custom Cash Card', mask: '2290', balance: 96.4, limit: 5_000 },
-  { name: 'Citi Double Cash Card', mask: '7731', balance: 412.77, limit: 8_000 },
-];
 
 /** The app's onetap_cards row (shared/contracts.ts OneTapCardRow). Only the last four reach the app. */
 export interface OneTapCardDto {
@@ -21,103 +11,89 @@ export interface OneTapCardDto {
   state: 'open' | 'paused';
 }
 
-export interface ConnectTestAccountsDto {
-  /** plaid_sandbox: imported from a Plaid Sandbox test user. demo: created directly (Plaid not configured). */
-  source: 'plaid_sandbox' | 'demo' | 'existing';
+export interface ConnectCardsDto {
+  /** One routable card per credit account the user connected through Plaid, in card order. */
   cardIds: string[];
 }
 
-interface ImportedCard {
+interface PlaidCreditAccount {
+  id: string;
   name: string;
+  official_name: string | null;
   mask: string | null;
-  balanceCents: number;
-  limitCents: number;
-  issuer: string;
-  cardProductId: string | null;
+  current_balance_cents: number | null;
+  available_balance_cents: number | null;
+  credit_limit_cents: number | null;
+  institution_name: string | null;
+  card_product_id: string | null;
+  funding_id: string | null;
 }
 
 /**
  * Backend side of the OneTap app's setup flow (mobile/src/lib/api.ts):
- * connect the user's credit cards, then link the physical OneTap (NFC) card.
- * Each card the app shows is a mock_funding_accounts row: the account the router charges.
+ * turn the credit cards the user connected through Plaid into routable cards, then link the
+ * physical OneTap (NFC) card. Each card the app shows is a mock_funding_accounts row (the
+ * account the router charges), linked to the Plaid account it came from.
  */
 export class OneTapService {
   constructor(
     private readonly db: Database,
-    private readonly deps: { plaid: PlaidService; cards: CardsService; hardware: HardwareService; logger: Logger },
-    private readonly opts: { plaidConfigured: boolean; enrollmentEnabled: boolean; enrollmentWaitMs: number; pollMs?: number },
+    private readonly deps: { cards: CardsService; hardware: HardwareService; logger: Logger },
+    private readonly opts: { enrollmentEnabled: boolean; enrollmentWaitMs: number; pollMs?: number },
   ) {}
 
-  async connectTestAccounts(userId: string): Promise<ConnectTestAccountsDto> {
-    // Idempotent: a retry, or a second phone, gets the cards already connected.
-    const existing = await this.creditCardIds(userId);
-    if (existing.length) return { source: 'existing', cardIds: existing };
-
-    let imported: ImportedCard[];
-    let source: ConnectTestAccountsDto['source'];
-    if (this.opts.plaidConfigured) {
-      const { itemId } = await this.deps.plaid.connectSandboxTestUser(userId, SANDBOX_TEST_CARDS);
-      const { rows } = await this.db.query<{
-        name: string;
-        official_name: string | null;
-        mask: string | null;
-        current_balance_cents: number | null;
-        credit_limit_cents: number | null;
-        institution_name: string | null;
-        card_product_id: string | null;
-      }>(
-        `select a.name, a.official_name, a.mask, a.current_balance_cents, a.credit_limit_cents, i.institution_name, uc.card_product_id
-           from financial_accounts a
-           join plaid_items i on i.id = a.plaid_item_id
-           left join user_cards uc on uc.financial_account_id = a.id
-          where i.id = $1 and a.user_id = $2 and a.type = 'credit' and a.is_active
-          order by a.created_at, a.name`,
-        [itemId, userId],
-      );
-      imported = rows.map((r) => ({
-        name: r.official_name ?? r.name,
-        mask: r.mask,
-        balanceCents: r.current_balance_cents ?? 0,
-        limitCents: r.credit_limit_cents ?? 500_000,
-        issuer: `${r.institution_name ?? 'Plaid'} (sandbox)`,
-        cardProductId: r.card_product_id,
-      }));
-      source = 'plaid_sandbox';
-    } else {
-      imported = SANDBOX_TEST_CARDS.map((c) => ({
-        name: c.name,
-        mask: c.mask,
-        balanceCents: Math.round(c.balance * 100),
-        limitCents: Math.round(c.limit * 100),
-        issuer: 'Demo issuer (fictional)',
-        cardProductId: null,
-      }));
-      source = 'demo';
-    }
+  /**
+   * Creates or refreshes one routable card per active Plaid credit account. Everything shown
+   * (name, last four, balance, limit) comes from Plaid; the product match comes from Plaid
+   * matching (user_cards) or the catalog keywords. Idempotent: re-running updates balances.
+   */
+  async connectCards(userId: string): Promise<ConnectCardsDto> {
+    const { rows } = await this.db.query<PlaidCreditAccount>(
+      `select a.id, a.name, a.official_name, a.mask, a.current_balance_cents, a.available_balance_cents, a.credit_limit_cents,
+              i.institution_name, uc.card_product_id, m.id as funding_id
+         from financial_accounts a
+         join plaid_items i on i.id = a.plaid_item_id
+         left join user_cards uc on uc.financial_account_id = a.id
+         left join mock_funding_accounts m on m.financial_account_id = a.id
+        where a.user_id = $1 and a.type = 'credit' and a.is_active and i.status <> 'REMOVED'
+        order by i.created_at, a.created_at, coalesce(a.official_name, a.name), a.id`,
+      [userId],
+    );
+    if (rows.length === 0) throw new ReclaimedError('NO_CREDIT_CARDS_CONNECTED');
 
     const cardIds: string[] = [];
-    for (const [i, c] of imported.entries()) {
+    for (const a of rows) {
+      const balance = a.current_balance_cents ?? 0;
+      // Plaid reports the limit for most cards; otherwise balance + available credit.
+      const limit = a.credit_limit_cents ?? (a.available_balance_cents != null ? balance + a.available_balance_cents : 0);
+      const name = (a.official_name ?? a.name).slice(0, 80);
+      if (a.funding_id) {
+        await this.db.query(
+          `update mock_funding_accounts set display_name = $2, last4 = coalesce($3, last4), current_balance_cents = $4, credit_limit_cents = $5
+            where id = $1 and user_id = $6`,
+          [a.funding_id, name, validLast4(a.mask), balance, limit, userId],
+        );
+        cardIds.push(a.funding_id);
+        continue;
+      }
       const funding = await this.deps.cards.createFunding(
         userId,
         {
-          displayName: c.name.slice(0, 80),
-          fictionalIssuer: c.issuer.slice(0, 80),
+          displayName: name,
+          fictionalIssuer: (a.institution_name ?? 'Plaid').slice(0, 80),
           kind: 'CREDIT',
-          cardProductId: c.cardProductId ?? (await this.matchProduct(c.name)),
-          limitOrBalanceCents: c.limitCents,
-          priority: i + 1,
+          cardProductId: a.card_product_id ?? (await this.matchProduct(a.official_name ?? a.name)),
+          limitOrBalanceCents: limit,
         },
-        { last4: c.mask },
+        { last4: validLast4(a.mask) },
       );
-      await this.db.query('update mock_funding_accounts set current_balance_cents = $2 where id = $1', [funding.id, c.balanceCents]);
+      await this.db.query('update mock_funding_accounts set current_balance_cents = $2, financial_account_id = $3 where id = $1', [funding.id, balance, a.id]);
       cardIds.push(funding.id);
     }
     // The first card is the baseline each routing decision is compared with, until the user picks one.
-    if (cardIds[0]) {
-      await this.db.query('update profiles set default_card_id = coalesce(default_card_id, $2) where id = $1', [userId, cardIds[0]]);
-    }
-    this.deps.logger.info({ userId, source, cards: cardIds.length }, 'onetap test accounts connected');
-    return { source, cardIds };
+    await this.db.query('update profiles set default_card_id = coalesce(default_card_id, $2) where id = $1', [userId, cardIds[0]]);
+    this.deps.logger.info({ userId, cards: cardIds.length }, 'onetap cards connected from plaid');
+    return { cardIds };
   }
 
   /**
@@ -160,14 +136,6 @@ export class OneTapService {
     return r ? toOneTapCardDto(r) : null;
   }
 
-  private async creditCardIds(userId: string): Promise<string[]> {
-    const { rows } = await this.db.query<{ id: string }>(
-      `select id from mock_funding_accounts where user_id = $1 and kind = 'CREDIT' and status = 'ACTIVE' order by priority, created_at`,
-      [userId],
-    );
-    return rows.map((r) => r.id);
-  }
-
   /** Pre-match by account name (PRD F2): first catalog keyword hit, else the generic Other card. */
   private async matchProduct(accountName: string): Promise<string | null> {
     const { rows } = await this.db.query<{ id: string }>(
@@ -180,6 +148,8 @@ export class OneTapService {
     return rows[0]?.id ?? null;
   }
 }
+
+const validLast4 = (mask: string | null) => (mask && /^\d{4}$/.test(mask) ? mask : null);
 
 /** Display IDs look like RC-7F3A-19C2; the app shows the last four characters. */
 export function toOneTapCardDto(r: { id: string; display_id: string; status: string }): OneTapCardDto {

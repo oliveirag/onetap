@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createHarness, createUser, type Harness } from './helpers.js';
+import { createHarness, createUser, fundingSetup, type Harness } from './helpers.js';
 import { CHASE_GENERIC, CITI_DC } from './fake-plaid.js';
 
 async function linked(h: Harness, accounts = [CITI_DC], institutionId = 'ins_citi') {
@@ -48,8 +48,8 @@ describe('Demo C — bill payments (TEST MODE)', () => {
   it('submits, progresses and records a simulated payment without changing the Plaid balance', async () => {
     const h = await createHarness({ env: { BILL_PAY_STEP_MS: '0' } });
     const { user, acct } = await linked(h);
-    const setup = (await h.http().post('/api/v1/mock-funding-accounts/demo-setup').set(user.auth).send({})).body.data;
-    const checking = setup.funding.find((f: { displayName: string }) => f.displayName === 'Mock Checking');
+    const setup = await fundingSetup(h, user);
+    const checking = setup.funding.find((f) => f.displayName === 'Mock Checking')!;
     const res = await h.http().post('/api/v1/bill-pay/payments').set(user.auth).set('idempotency-key', 'billpay-0001').send({ financialAccountId: acct.id, fundingAccountId: checking.id, amountCents: 5_000 });
     expect(res.status).toBe(201);
     expect(res.body.data).toMatchObject({ state: 'SUBMITTED', testMode: true });

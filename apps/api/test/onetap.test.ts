@@ -1,12 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import type { PlaidAccount } from '../src/integrations/plaid/gateway.js';
+import { CITI_CHECKING, CITI_DC, PLATYPUS_CC } from './fake-plaid.js';
 import { bridgePost, createHarness, createUser, enrollCard, tap, terminalReq, type Harness } from './helpers.js';
 
 const UID = '04A1B2C3D4E5F6';
 
+// Test data: what Plaid would report for the user's accounts.
+const AMEX_GOLD: PlaidAccount = { ...CITI_DC, accountId: 'acc-amex-gold', name: 'Gold Card', officialName: 'American Express Gold Card', mask: '1008', current: 842.17, available: 14_157.83, limit: 15_000 };
+const SAPPHIRE: PlaidAccount = { ...CITI_DC, accountId: 'acc-csp', name: 'Chase Sapphire Preferred', officialName: null, mask: '4417', current: 1_240.5, available: null, limit: 10_000 };
+
+/** Plaid Link + exchange, as the app does before calling /onetap/connect-cards. */
+async function link(h: Harness, user: { auth: Record<string, string> }, accounts: PlaidAccount[], institutionId = 'ins_platypus') {
+  const res = await h.http().post('/api/v1/plaid/exchange-token').set(user.auth).send({ publicToken: h.plaid.addInstitution({ institutionId, accounts }) });
+  expect(res.status, JSON.stringify(res.body)).toBe(201);
+}
+
 async function cards(h: Harness, userId: string) {
   return (
-    await h.db.query<{ id: string; display_name: string; last4: string; current_balance_cents: number; credit_limit_cents: number; slug: string; priority: number }>(
-      `select m.id, m.display_name, m.last4, m.current_balance_cents, m.credit_limit_cents, p.product_slug as slug, m.priority
+    await h.db.query<{ id: string; display_name: string; last4: string | null; current_balance_cents: number; credit_limit_cents: number; slug: string; priority: number; fictional_issuer: string }>(
+      `select m.id, m.display_name, m.last4, m.current_balance_cents, m.credit_limit_cents, p.product_slug as slug, m.priority, m.fictional_issuer
          from mock_funding_accounts m left join card_products p on p.id = m.card_product_id
         where m.user_id = $1 order by m.priority`,
       [userId],
@@ -14,44 +26,61 @@ async function cards(h: Harness, userId: string) {
   ).rows;
 }
 
-describe('OneTap setup: connect test accounts (PRD F2 fallback)', () => {
-  it('links a Plaid Sandbox test user and turns each credit card into a routable, pre-matched card', async () => {
+describe('OneTap setup: connect cards from Plaid', () => {
+  it('turns each connected credit account into a routable card using only what Plaid reports', async () => {
     const h = await createHarness();
     const user = await createUser(h.db);
-    const res = await h.http().post('/api/v1/onetap/connect-test-accounts').set(user.auth).send({});
-    expect(res.status, JSON.stringify(res.body)).toBe(201);
-    expect(res.body.data.source).toBe('plaid_sandbox');
-    expect(h.plaid.sandboxCalls).toHaveLength(1);
+    await link(h, user, [AMEX_GOLD, SAPPHIRE, CITI_DC, PLATYPUS_CC, CITI_CHECKING]);
+    const res = await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({});
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
 
     const rows = await cards(h, user.id);
-    expect(rows.map((r) => [r.display_name, r.last4, r.slug, r.priority])).toEqual([
-      ['American Express Gold Card', '1008', 'amex-gold', 1],
-      ['Chase Sapphire Preferred', '4417', 'chase-sapphire-preferred', 2],
-      ['Citi Custom Cash Card', '2290', 'citi-custom-cash', 3],
-      ['Citi Double Cash Card', '7731', 'citi-double-cash', 4],
-    ]);
-    expect(rows[0]).toMatchObject({ current_balance_cents: 84_217, credit_limit_cents: 1_500_000 });
+    expect(rows.map((r) => [r.display_name, r.last4, r.slug, r.current_balance_cents, r.credit_limit_cents])).toEqual([
+      ['American Express Gold Card', '1008', 'amex-gold', 84_217, 1_500_000],
+      ['Chase Sapphire Preferred', '4417', 'chase-sapphire-preferred', 124_050, 1_000_000],
+      ['Citi Double Cash Card', '4321', 'citi-double-cash', 41_055, 500_000],
+      // No catalog match: routes as the generic Other card (1x).
+      ['Plaid Diamond 12.5% APR Interest Credit Card', '3333', 'other-card', 41_000, 200_000],
+    ]); // the checking account is not a card
+    expect(rows.every((r) => r.fictional_issuer === 'First Platypus Bank')).toBe(true);
     expect(res.body.data.cardIds).toEqual(rows.map((r) => r.id));
     const profile = await h.db.query('select default_card_id from profiles where id = $1', [user.id]);
     expect(profile.rows[0]).toEqual({ default_card_id: rows[0]!.id });
-
-    // Idempotent: a retry returns the same cards and links nothing new.
-    const again = await h.http().post('/api/v1/onetap/connect-test-accounts').set(user.auth).send({});
-    expect(again.body.data).toEqual({ source: 'existing', cardIds: res.body.data.cardIds });
-    expect(h.plaid.sandboxCalls).toHaveLength(1);
   });
 
-  it('creates the same cards directly when Plaid is not configured', async () => {
-    const h = await createHarness({ env: { PLAID_TOKEN_ENCRYPTION_KEY: '' } });
+  it('is idempotent and refreshes balances from Plaid on reconnect', async () => {
+    const h = await createHarness();
     const user = await createUser(h.db);
-    const res = await h.http().post('/api/v1/onetap/connect-test-accounts').set(user.auth).send({});
-    expect(res.body.data.source).toBe('demo');
-    expect((await cards(h, user.id)).map((r) => r.slug)).toEqual(['amex-gold', 'chase-sapphire-preferred', 'citi-custom-cash', 'citi-double-cash']);
+    await link(h, user, [AMEX_GOLD]);
+    const first = (await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({})).body.data;
+    await h.db.query(`update financial_accounts set current_balance_cents = 5000 where plaid_account_id = 'acc-amex-gold'`);
+    const again = (await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({})).body.data;
+    expect(again).toEqual(first);
+    const rows = await cards(h, user.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.current_balance_cents).toBe(5_000);
+
+    // A second bank adds its cards after the existing ones.
+    await link(h, user, [SAPPHIRE], 'ins_chase');
+    const more = (await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({})).body.data;
+    expect(more.cardIds).toHaveLength(2);
+    expect(more.cardIds[0]).toBe(first.cardIds[0]);
+  });
+
+  it('says so when no connected account is a credit card', async () => {
+    const h = await createHarness();
+    const user = await createUser(h.db);
+    expect((await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({})).body.error.code).toBe('NO_CREDIT_CARDS_CONNECTED');
+    await link(h, user, [CITI_CHECKING]);
+    const res = await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({});
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('NO_CREDIT_CARDS_CONNECTED');
+    expect(await cards(h, user.id)).toEqual([]);
   });
 
   it('requires a signed-in user', async () => {
     const h = await createHarness();
-    expect((await h.http().post('/api/v1/onetap/connect-test-accounts').send({})).status).toBe(401);
+    expect((await h.http().post('/api/v1/onetap/connect-cards').send({})).status).toBe(401);
   });
 });
 
@@ -99,7 +128,8 @@ describe('OneTap end to end: tap at the terminal routes by category', () => {
   it('routes a Starbucks purchase to Amex Gold (4x dining) and stores the receipt fields', async () => {
     const h = await createHarness();
     const user = await createUser(h.db);
-    await h.http().post('/api/v1/onetap/connect-test-accounts').set(user.auth).send({});
+    await link(h, user, [AMEX_GOLD, CITI_DC]);
+    await h.http().post('/api/v1/onetap/connect-cards').set(user.auth).send({});
     await enrollCard(h, user, UID);
 
     const checkout = await terminalReq(h, 'POST', '/test-terminal/transactions', {
@@ -134,7 +164,7 @@ describe('OneTap end to end: tap at the terminal routes by category', () => {
       reward_value_cents: 50,
       baseline_value_cents: 50, // the default card is Amex Gold too
       best_value_cents: 50,
-      alternatives: 3,
+      alternatives: 1,
     });
   });
 });

@@ -112,7 +112,13 @@ async function main() {
   check('Enrollment status visible to the app', enr.status === 'COMPLETED');
 
   // ---- Funding & terminal checkout ----
-  const setup = await api<{ funding: { id: string; displayName: string }[] }>(token, 'POST', '/mock-funding-accounts/demo-setup', { reclaimedCardId: cardId });
+  // Test data for this script: two simulated credit accounts as the card's primary and secondary.
+  const products = await api<{ id: string; productSlug: string }[]>(token, 'GET', '/card-products');
+  const product = (slug: string) => products.find((p) => p.productSlug === slug)?.id ?? null;
+  const citiAcct = await api<{ id: string; displayName: string }>(token, 'POST', '/mock-funding-accounts', { displayName: 'Mock Citi', fictionalIssuer: 'Mock Citi (fictional)', kind: 'CREDIT', cardProductId: product('citi-double-cash'), limitOrBalanceCents: 200_000, priority: 1 });
+  const chaseAcct = await api<{ id: string; displayName: string }>(token, 'POST', '/mock-funding-accounts', { displayName: 'Mock Chase', fictionalIssuer: 'Mock Chase (fictional)', kind: 'CREDIT', cardProductId: product('chase-sapphire-preferred'), limitOrBalanceCents: 500_000, priority: 2 });
+  await api(token, 'PUT', `/reclaimed-cards/${cardId}/funding`, { primaryFundingAccountId: citiAcct.id, secondaryFundingAccountId: chaseAcct.id, fallbackEnabled: true });
+  const setup = { funding: [citiAcct, chaseAcct] };
   check('Mock Citi (primary) and Mock Chase (secondary) configured', setup.funding.map((f) => f.displayName).join(',').includes('Mock Citi'));
   const terminal = createTerminalClient({ baseUrl: API, terminalCode: process.env.TEST_TERMINAL_ID ?? 'TERM-DEV-001', secret: process.env.TEST_TERMINAL_SECRET! });
   const checkout = await terminal<{ id: string; state: string }>('POST', '/test-terminal/transactions', { merchantId: 'MID-WALMART-0001', merchantName: 'Walmart', mcc: '5310', amountCents: 10_000, currency: 'USD' });

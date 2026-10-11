@@ -21,7 +21,7 @@ All are under `/api/v1`, need the user's Supabase token, and return the `{ succe
 
 | App call | Endpoint | Behavior |
 |---|---|---|
-| `api.connectTestAccounts()` (setup step 1) | `POST /onetap/connect-test-accounts` | Links a **Plaid Sandbox custom test user** with 4 credit cards (Amex Gold, Sapphire Preferred, Custom Cash, Double Cash), imports them through the normal Plaid pipeline, and creates one pre-matched funding account per card. Without Plaid keys it creates the same cards directly (`source: 'demo'`). Idempotent |
+| `api.connectCards()` (setup step 1) | `POST /plaid/link-token` → Plaid Link → `POST /plaid/exchange-token` → `POST /onetap/connect-cards` | The user signs in to their bank in **Plaid Link**. The backend imports the accounts, then creates one routable card per **credit** account. The name, last four, balance and limit all come from Plaid, and each card is linked to its Plaid account (`mock_funding_accounts.financial_account_id`), so reconnecting refreshes it instead of duplicating it. No connected credit card: `NO_CREDIT_CARDS_CONNECTED`. Nothing is invented when Plaid isn't configured |
 | `api.createOneTapCard()` (setup step 4) | `POST /onetap/card` | Returns the user's card, or opens an enrollment session and **waits up to `ONETAP_ENROLL_WAIT_MS` (45 s) for the NFC card to be tapped** on the reader. The screen shows "Hold your OneTap card on the reader." Development or `HARDWARE_TEST_MODE=true` only |
 | `api.chat()` (Assistant) | `POST /chat` | **Not implemented on the backend yet.** The Assistant tab shows its error state in live mode |
 
@@ -41,7 +41,7 @@ The result is written in the **same update** that sets the final state, so the a
 1. `npm run db:start`, then `npm run db:migrate` and `npm run db:seed` with `DATABASE_URL` pointing at the **local** database.
 2. `npm run dev` (API, terminal simulator at http://localhost:5173, hardware bridge).
 3. `cd mobile && npx expo run:ios`, with `mobile/.env` as in [setup.md](setup.md).
-4. In the app: sign up → **Connect cards** → match → mode → **Create my card**, then tap the NFC card on the reader.
+4. In the app: sign up → **Connect cards** (Plaid Link; your Plaid dashboard test user for several cards) → match → mode → **Create my card**, then tap the NFC card on the reader.
 5. Terminal: pick a merchant (Starbucks is dining, Shell is gas, Whole Foods is groceries) → **Start checkout** → tap. The receipt opens on the phone.
 
-Without a reader, `npm run smoke:onetap` runs the same flow with simulated taps and checks every step (16 checks).
+Without a reader, `npm run smoke:onetap` runs the same flow with simulated taps. In place of Plaid Link it asks Plaid's Sandbox API for a public token: for `PLAID_SANDBOX_USERNAME` (and `PLAID_SANDBOX_PASSWORD`) if set, otherwise for test cards defined in the script. Every routing check is computed from the cards and rates the app reads.

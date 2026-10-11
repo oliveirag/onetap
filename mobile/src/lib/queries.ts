@@ -153,10 +153,10 @@ export function useSpending() {
   };
 }
 
-export function useConnectTestAccounts() {
+export function useConnectCards() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: api.connectTestAccounts,
+    mutationFn: api.connectCards,
     onSuccess: (cards) => qc.setQueryData(keys.cards, cards),
   });
 }

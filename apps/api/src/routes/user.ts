@@ -95,10 +95,6 @@ export function userRoutes(ctx: AppContext): Router {
   r.patch('/mock-funding-accounts/:id', async (req, res) =>
     ok(res, await s.cards.updateFunding(uid(req), param(req, 'id'), parse(updateMockFundingAccountSchema, req.body))),
   );
-  r.post('/mock-funding-accounts/demo-setup', async (req, res) => {
-    const body = parse(z.object({ reclaimedCardId: z.uuid().optional() }), req.body ?? {});
-    ok(res, await s.cards.demoSetup(uid(req), body.reclaimedCardId));
-  });
 
   // ---------- Reclaimed cards ----------
   r.get('/reclaimed-cards', async (req, res) => ok(res, await s.cards.list(uid(req))));
@@ -168,7 +164,8 @@ export function userRoutes(ctx: AppContext): Router {
   r.post('/bill-pay/payments/:id/cancel', async (req, res) => ok(res, await s.billPay.cancel(uid(req), param(req, 'id'))));
 
   // ---------- OneTap app setup (mobile/src/lib/api.ts) ----------
-  r.post('/onetap/connect-test-accounts', async (req, res) => ok(res, await s.onetap.connectTestAccounts(uid(req)), 201));
+  // After Plaid Link + /plaid/exchange-token: one routable card per connected credit account.
+  r.post('/onetap/connect-cards', async (req, res) => ok(res, await s.onetap.connectCards(uid(req))));
   // Waits up to ONETAP_ENROLL_WAIT_MS for the NFC card to be tapped when the user has none yet.
   r.post('/onetap/card', async (req, res) => ok(res, await s.onetap.card(uid(req))));
 

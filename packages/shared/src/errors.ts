@@ -17,6 +17,7 @@ export const ERROR_CODES = {
     retryable: false,
     message: 'Your bank connection expired. Please reconnect this institution.',
   },
+  NO_CREDIT_CARDS_CONNECTED: { status: 422, retryable: false, message: 'None of your connected accounts is a credit card. Connect a bank that has one.' },
   PLAID_NOT_CONFIGURED: { status: 503, retryable: false, message: 'Plaid credentials are not configured.' },
   WEBHOOK_VERIFICATION_FAILED: { status: 401, retryable: false, message: 'Webhook signature verification failed.' },
   NFC_READER_NOT_FOUND: { status: 404, retryable: true, message: 'No NFC reader was found.' },

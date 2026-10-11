@@ -97,8 +97,7 @@ export function buildContext(config: Config, logger: Logger, o: ContextOverrides
   });
   const profile = new ProfileService(db, { authAdmin, plaid, logger });
   const dashboard = new DashboardService(db, { accounts, cards, plaid });
-  const onetap = new OneTapService(db, { plaid, cards, hardware, logger }, {
-    plaidConfigured: Boolean(plaidGateway && cipher),
+  const onetap = new OneTapService(db, { cards, hardware, logger }, {
     enrollmentEnabled: config.isDev || config.HARDWARE_TEST_MODE,
     enrollmentWaitMs: config.ONETAP_ENROLL_WAIT_MS,
   });

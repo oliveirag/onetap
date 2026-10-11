@@ -1,4 +1,3 @@
-import { randomInt } from 'node:crypto';
 import {
   ReclaimedError,
   type CreateMockFundingAccountInput,
@@ -140,7 +139,7 @@ export class CardsService {
     return listMockFundingDtos(this.db, userId);
   }
 
-  /** `extra.last4` is the real account's mask (e.g. from Plaid); otherwise a random fictional one. */
+  /** `extra.last4` is the real account's mask (e.g. from Plaid); null when there is none. */
   async createFunding(userId: string, input: CreateMockFundingAccountInput, extra: { last4?: string | null } = {}): Promise<MockFundingAccountDto> {
     if (input.cardProductId) {
       const p = await this.db.query('select 1 from card_products where id = $1', [input.cardProductId]);
@@ -154,7 +153,7 @@ export class CardsService {
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
       [userId, input.displayName, input.fictionalIssuer, input.kind, input.cardProductId ?? null,
         input.kind === 'CREDIT' ? input.limitOrBalanceCents : 0, input.kind === 'DEPOSIT' ? input.limitOrBalanceCents : 0, Math.min(priority, 99),
-        /^\d{4}$/.test(extra.last4 ?? '') ? extra.last4 : String(randomInt(0, 10_000)).padStart(4, '0')],
+        /^\d{4}$/.test(extra.last4 ?? '') ? extra.last4 : null],
     );
     return (await this.listFunding(userId)).find((f) => f.id === rows[0]!.id)!;
   }
@@ -174,37 +173,6 @@ export class CardsService {
     const out = (await this.listFunding(userId)).find((f) => f.id === id);
     if (!out) throw new ReclaimedError('NOT_FOUND', 'Mock funding account not found.');
     return out;
-  }
-
-  /**
-   * Demo convenience: creates "Mock Citi" (Citi Double Cash, $2,000 limit, priority 1) and
-   * "Mock Chase" (Chase Sapphire Preferred, $5,000 limit, priority 2) if missing, and sets them
-   * as primary / secondary on the given card with fallback enabled. Fictional accounts only.
-   */
-  async demoSetup(userId: string, cardId?: string): Promise<{ funding: MockFundingAccountDto[]; card: ReclaimedCardDto | null }> {
-    const products = await this.db.query<{ id: string; product_slug: string }>(
-      `select id, product_slug from card_products where product_slug in ('citi-double-cash', 'chase-sapphire-preferred')`,
-    );
-    const bySlug = new Map(products.rows.map((p) => [p.product_slug, p.id]));
-    const ensure = async (name: string, issuer: string, slug: string, limit: number, priority: number) => {
-      const existing = await this.db.query<{ id: string }>(
-        `select id from mock_funding_accounts where user_id = $1 and display_name = $2 and status <> 'CLOSED'`,
-        [userId, name],
-      );
-      if (existing.rows[0]) return existing.rows[0].id;
-      const f = await this.createFunding(userId, { displayName: name, fictionalIssuer: issuer, kind: 'CREDIT', cardProductId: bySlug.get(slug) ?? null, limitOrBalanceCents: limit, priority });
-      return f.id;
-    };
-    const citi = await ensure('Mock Citi', 'Mock Citi (fictional)', 'citi-double-cash', 200_000, 1);
-    const chase = await ensure('Mock Chase', 'Mock Chase (fictional)', 'chase-sapphire-preferred', 500_000, 2);
-    const checking = await this.db.query(`select 1 from mock_funding_accounts where user_id = $1 and display_name = 'Mock Checking'`, [userId]);
-    if (!checking.rowCount) {
-      await this.createFunding(userId, { displayName: 'Mock Checking', fictionalIssuer: 'Mock Bank (fictional)', kind: 'DEPOSIT', limitOrBalanceCents: 300_000, priority: 3 });
-    }
-    let card: ReclaimedCardDto | null = null;
-    const target = cardId ?? (await this.list(userId))[0]?.id;
-    if (target) card = await this.setFunding(userId, target, { primaryFundingAccountId: citi, secondaryFundingAccountId: chase, fallbackEnabled: true });
-    return { funding: await this.listFunding(userId), card };
   }
 
   /** Maps a Reclaimed test card to a NEW Lithic Sandbox virtual card (token stored, PAN never stored). */
