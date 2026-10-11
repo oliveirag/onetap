@@ -1,10 +1,8 @@
 import { matchProduct } from './catalog';
 import { buildPlan, emptyAnswers, fixesFor, PAINS, SAMPLE_WALLET } from './onboarding';
 
-const wallet = ['cp-amex-gold', 'cp-chase-sapphire-preferred', 'cp-citi-custom-cash'];
-
-it('routes each demo purchase to the card that earns the most, with PRD F4 reward math', () => {
-  const plan = buildPlan({ ...emptyAnswers, wallet, spend: ['dining', 'gas'] });
+it('routes each plan purchase to the card that earns the most, with PRD F4 reward math', () => {
+  const plan = buildPlan({ ...emptyAnswers, spend: ['dining', 'gas'] });
   // Two picked categories, topped up to three from the defaults.
   expect(plan.purchases.map((p) => [p.merchant.name, p.cardName, p.multiplier, p.points, p.valueCents])).toEqual([
     ['Knight Bites', 'Amex Gold', 4, 52, 52], // $13.00 x 4 (the PRD's own example)
@@ -15,22 +13,21 @@ it('routes each demo purchase to the card that earns the most, with PRD F4 rewar
 });
 
 it('compares against the single card that would have earned the most on the same purchases', () => {
-  const plan = buildPlan({ ...emptyAnswers, wallet, spend: ['dining', 'gas', 'groceries'] });
+  const plan = buildPlan({ ...emptyAnswers, spend: ['dining', 'gas', 'groceries'] });
   // Amex alone: 52 + 42 (gas at 1x) + 257.
   expect(plan.oneCardName).toBe('Amex Gold');
   expect(plan.oneCardCents).toBe(351);
   expect(plan.totalCents - plan.oneCardCents).toBe(167);
 });
 
-it('gives a tie to the card picked first', () => {
-  const plan = buildPlan({ ...emptyAnswers, wallet: ['cp-citi-double-cash', 'cp-capital-one-venture-x'], spend: ['dining'] });
+it('gives a tie to the card listed first', () => {
+  const plan = buildPlan({ ...emptyAnswers, spend: ['dining'] }, ['cp-citi-double-cash', 'cp-capital-one-venture-x']);
   expect(plan.rules.every((r) => r.cardName === 'Double Cash')).toBe(true);
   expect(plan.totalCents).toBe(plan.oneCardCents);
 });
 
-it('falls back to a labeled sample wallet when no cards were picked', () => {
+it('prices three purchases on the example wallet even with no answers', () => {
   const plan = buildPlan(emptyAnswers);
-  expect(plan.sample).toBe(true);
   expect(plan.purchases).toHaveLength(3);
   expect(new Set(plan.purchases.map((p) => p.cardId)).size).toBeGreaterThan(1);
   expect(SAMPLE_WALLET).toContain(plan.purchases[0].cardId);

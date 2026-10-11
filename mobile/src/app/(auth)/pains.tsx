@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { GOALS, PAINS, progressOf, type PainId } from '@/lib/onboarding';
 import { useTheme } from '@/theme/ThemeProvider';
 
-// Pain points: pick any. These come back on the solution screen as the things OneTap fixes.
+// Pain points: pick any. These come back on the plan as the things OneTap fixes.
 export default function Pains() {
   const { theme } = useTheme();
   const { answers, update } = useAnswers();
@@ -21,7 +21,7 @@ export default function Pains() {
       title="What gets in the way?"
       subtitle={goal ? `Pick all that stop you from ${goal.pains}.` : 'Pick all that apply.'}
       progress={progressOf('pains')}
-      footer={<Button label="Continue" onPress={() => router.push('/relate')} />}
+      footer={<Button label="Continue" onPress={() => router.push('/spend')} />}
     >
       <View accessibilityLabel="What gets in the way" style={{ gap: theme.space.sm }}>
         {PAINS.map((p) => (

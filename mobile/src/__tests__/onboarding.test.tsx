@@ -17,6 +17,8 @@ const field = (label: string, text: string) => fireEvent.changeText(screen.getBy
 
 async function signUpThroughQuestionnaire(email: string, password: string) {
   press('Get started');
+  await screen.findByText('Want a plan made for you?');
+  press('Personalize');
   await screen.findByText('What do you want from your cards?');
   fireEvent.press(screen.getByRole('radio', { name: 'Stop guessing which card to use' }));
   press('Continue');
@@ -25,29 +27,12 @@ async function signUpThroughQuestionnaire(email: string, password: string) {
   fireEvent.press(screen.getByRole('checkbox', { name: "I can't remember which card earns what" }));
   press('Continue');
 
-  await screen.findByText('Sound familiar?');
-  for (let i = 0; i < 4; i++) press(i % 2 ? 'Not me' : 'Me too');
-
-  await screen.findByText(/You said "me too" to 2 of 4/);
-  press('Add my cards');
-
-  await screen.findByText('Which cards do you have?');
-  fireEvent.press(screen.getByRole('checkbox', { name: 'Amex Gold, American Express' }));
-  fireEvent.press(screen.getByRole('checkbox', { name: 'Custom Cash, Citi' }));
-  press('Continue with 2 cards');
-
   await screen.findByText('Where do you spend the most?');
   fireEvent.press(screen.getByRole('checkbox', { name: 'Dining' }));
   press('Build my plan');
 
-  await screen.findByText('Try a tap', {}, { timeout: 5000 });
-  press('See my plan');
-  expect(screen.getByText('Tap the other 3 purchases first.')).toBeTruthy();
-  for (const b of screen.getAllByRole('button', { name: 'Tap to pay' })) fireEvent.press(b);
-  expect(await screen.findAllByText(/Went to/)).toHaveLength(3);
-  press('See my plan');
-
-  await screen.findByText('Your OneTap plan');
+  await screen.findByText('Your OneTap plan', {}, { timeout: 5000 });
+  expect(screen.getByText(/OneTap knows every card you own/)).toBeTruthy();
   press('Save my plan');
 
   await screen.findByText('Tell us about you');
@@ -134,6 +119,26 @@ it('resumes setup at the saved step after logging in again', async () => {
   await screen.findByText(/Your best card, every time/);
   await act(async () => authBackend.signIn('grace@example.com', 'compiler99'));
   await screen.findByText('Are these your cards?');
+});
+
+it('skips the questionnaire straight to the account', async () => {
+  renderRouter('./src/app', { initialUrl: '/' });
+  await screen.findByText(/Your best card, every time/);
+  press('Get started');
+  await screen.findByText('Want a plan made for you?');
+  press('Skip for now');
+  await screen.findByText('Tell us about you');
+  expect(screen.getByLabelText('Step 1 of 2')).toBeTruthy();
+  field('First name', 'Alan');
+  field('Last name', 'Turing');
+  press('Next');
+  await screen.findByText('Add your account info');
+  expect(screen.getByLabelText('Step 2 of 2')).toBeTruthy();
+  field('Email', 'alan@example.com');
+  field('Password', 'enigma1234');
+  fireEvent.press(screen.getByRole('checkbox', { name: "I'm at least 18 years old" }));
+  await act(async () => press('Create account'));
+  await screen.findByText('Welcome, Alan. Connect your cards');
 });
 
 it('refuses a second account with the same email', async () => {

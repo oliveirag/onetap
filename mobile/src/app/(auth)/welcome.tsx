@@ -36,7 +36,7 @@ export default function Welcome() {
       </Animated.View>
 
       <View style={{ paddingVertical: theme.space['2xl'] }}>
-        <Animated.View entering={enter(80)} style={{ transform: [{ rotate: '-4deg' }], marginTop: theme.space.xl }}>
+        <Animated.View entering={enter(80)} style={{ transform: [{ rotate: '-4deg' }], marginVertical: theme.space.xl }}>
           <OneTapCard last4="4821" status="Best card, automatically" auto />
         </Animated.View>
         <Animated.View entering={enter(200)} style={{ position: 'absolute', top: 0, left: 0 }}>
@@ -48,7 +48,7 @@ export default function Welcome() {
       </View>
 
       <View style={{ gap: theme.space.sm }}>
-        <Button label="Get started" onPress={() => router.push('/goal')} />
+        <Button label="Get started" onPress={() => router.push('/personalize')} />
         <Button variant="secondary" label="Log in" onPress={() => router.push('/login')} />
       </View>
     </View>

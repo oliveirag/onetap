@@ -18,7 +18,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 // A session switches the root gate to setup on its own; no session means "confirm your email".
 export default function Account() {
   const { theme } = useTheme();
-  const { answers, clear, name } = useAnswers();
+  const { answers, clear, name, skipped } = useAnswers();
   const { signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +49,7 @@ export default function Account() {
     <FlowScreen
       title="Add your account info"
       subtitle="You'll log in with this email."
-      progress={progressOf('account')}
+      progress={progressOf('account', skipped)}
       footer={
         <>
           <FormError text={formError} />

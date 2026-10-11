@@ -13,7 +13,7 @@ const STEPS = ["Reading your cards' bonus categories", 'Sorting purchases into c
 const TICK = 550;
 
 // The processing moment. The math is instant; the pause makes the plan feel made for them.
-// Each line checks off in turn, then it hands over to the demo (replace, so Back skips it).
+// Each line checks off in turn, then it hands over to the plan (replace, so Back skips it).
 export default function Building() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -24,7 +24,7 @@ export default function Building() {
       const t = setTimeout(() => setDone((d) => d + 1), TICK);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => router.replace('/demo'), 400);
+    const t = setTimeout(() => router.replace('/plan'), 400);
     return () => clearTimeout(t);
   }, [done]);
 

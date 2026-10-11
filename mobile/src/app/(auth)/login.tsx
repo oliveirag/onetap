@@ -81,7 +81,7 @@ export default function Login() {
       </View>
       <Text variant="body-sm" tone="secondary">
         New to OneTap?{' '}
-        <Text variant="body-sm" style={{ textDecorationLine: 'underline' }} accessibilityRole="link" onPress={() => router.replace('/goal')}>
+        <Text variant="body-sm" style={{ textDecorationLine: 'underline' }} accessibilityRole="link" onPress={() => router.replace('/personalize')}>
           Get started
         </Text>
       </Text>

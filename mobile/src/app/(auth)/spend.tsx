@@ -15,7 +15,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 
 const PICKABLE: CategoryId[] = ['dining', 'groceries', 'gas', 'streaming', 'travel'];
 
-// Where the money goes. These become the purchases they tap in the demo, so the question pays off.
+// Where the money goes. These become the purchases priced on the plan, so the question pays off.
 export default function Spend() {
   const { theme } = useTheme();
   const { answers, update } = useAnswers();
@@ -25,7 +25,7 @@ export default function Spend() {
   return (
     <FlowScreen
       title="Where do you spend the most?"
-      subtitle="Pick up to three. You'll try OneTap on these next."
+      subtitle="Pick up to three. Your plan starts with these."
       progress={progressOf('spend')}
       footer={<Button label="Build my plan" onPress={() => router.push('/building')} />}
     >

@@ -13,7 +13,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 // Venmo's "Tell us about you". First step of the account gate.
 export default function Name() {
   const { theme } = useTheme();
-  const { name, setName } = useAnswers();
+  const { name, setName, skipped } = useAnswers();
   const [first, setFirst] = useState(name.first);
   const [last, setLast] = useState(name.last);
   const [errors, setErrors] = useState<{ first?: string | null; last?: string | null }>({});
@@ -31,7 +31,7 @@ export default function Name() {
     <FlowScreen
       title="Tell us about you"
       subtitle="Create a free account to keep your plan. Start with your name."
-      progress={progressOf('name')}
+      progress={progressOf('name', skipped)}
       footer={<Button label="Next" onPress={next} />}
     >
       <View style={{ gap: theme.space.lg }}>

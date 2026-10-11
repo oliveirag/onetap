@@ -12,7 +12,7 @@ export default function AuthLayout() {
     <AnswersProvider>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.surface.page } }}>
         <Stack.Screen name="welcome" />
-        {/* The pause is a one-way door: no swipe back into it, and it replaces itself with the demo. */}
+        {/* The pause is a one-way door: no swipe back into it, and it replaces itself with the plan. */}
         <Stack.Screen name="building" options={{ gestureEnabled: false, animation: 'fade' }} />
       </Stack>
     </AnswersProvider>
