@@ -66,7 +66,14 @@ async function finishSetup() {
   await act(async () => press('Continue'));
 
   await screen.findByText('Meet your OneTap card');
-  await act(async () => press('Create my card'));
+  // Confirm in place: the button becomes the question; a press inside 280 ms counts as a double tap.
+  press('Create my card');
+  // Step past the guard without waiting (this suite's router may run on fake timers).
+  const later = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 1000);
+  await act(async () => {
+    press('Create card'); // the guard reads the clock synchronously, so restore it right away
+    later.mockRestore();
+  });
   await screen.findByText('Your OneTap card is ready', {}, { timeout: 3000 });
   await act(async () => press('Go to home'));
 }

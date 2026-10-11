@@ -2,8 +2,10 @@ import { View } from 'react-native';
 
 import { FlowScreen } from '@/components/onboarding/FlowScreen';
 import { FormError } from '@/components/onboarding/FormError';
-import { OneTapCard } from '@/components/onetap/OneTapCard';
+import { CARD_RATIO, OneTapCard } from '@/components/onetap/OneTapCard';
+import { TapFeedArt } from '@/components/onetap/TapFeedArt';
 import { Button } from '@/components/ui/Button';
+import { ConfirmMorph } from '@/components/ui/ConfirmMorph';
 import { Enter } from '@/components/ui/Enter';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Skeleton } from '@/components/ui/States';
@@ -12,6 +14,7 @@ import { apiMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useCreateOneTapCard, useProfile, useUserCards } from '@/lib/queries';
 import { backFrom, setupProgress } from '@/lib/setup';
+import { duration } from '@/theme/motion';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const perks = (manualName?: string): { icon: IconName; title: string; body: string }[] => [
@@ -50,7 +53,19 @@ export default function Card() {
             // Writing 'done' flips the root gate: setup unmounts and Home appears.
             <Button label="Go to home" onPress={() => setStep('done')} />
           ) : (
-            <Button label="Create my card" loading={create.isPending} onPress={() => create.mutate()} />
+            // Confirm in place, after Revolut: the button becomes the question, no alert.
+            <ConfirmMorph
+              block
+              variant="primary"
+              confirmTone="primary"
+              label="Create my card"
+              prompt="Create your OneTap card? It goes live right away as a digital card."
+              confirmLabel="Create card"
+              pendingLabel="Creating your card"
+              doneLabel="Card created"
+              errorLabel="Your card was not created."
+              onConfirm={() => create.mutateAsync()}
+            />
           )}
         </>
       }
@@ -61,36 +76,54 @@ export default function Card() {
             <OneTapCard last4={card.last4} status={status} auto={!manual} />
           </Enter>
         ) : create.isPending ? (
-          <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />
+          <Skeleton aspectRatio={CARD_RATIO} radius={theme.radius.xl} />
         ) : (
           <OneTapCard last4="••••" />
         )}
       </View>
 
-      <View style={{ gap: theme.space.lg }}>
-        {perks(manualName).map((p) => (
-          <View key={p.title} style={{ flexDirection: 'row', gap: theme.space.md, alignItems: 'center' }}>
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: theme.radius.full,
-                backgroundColor: theme.color.surface.action,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name={p.icon} size={18} tone="on-action" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontFamily: 'JBMono-Medium' }}>{p.title}</Text>
-              <Text variant="body-sm" tone="secondary">
-                {p.body}
-              </Text>
-            </View>
+      {card ? (
+        // After Revolut's notification pre-prompt: what happens next, drawn, once the card exists.
+        <Enter kind="fade" delay={duration.stagger * 2} style={{ gap: theme.space.lg, alignItems: 'center', paddingTop: theme.space.lg }}>
+          <TapFeedArt />
+          <View style={{ gap: theme.space.xs, alignItems: 'center' }}>
+            <Text variant="h3" style={{ textAlign: 'center' }}>
+              Every tap shows up here
+            </Text>
+            <Text tone="secondary" style={{ textAlign: 'center' }}>
+              Tap at the store and this phone buzzes with the receipt: the card it went to and what you earned.
+            </Text>
           </View>
-        ))}
-      </View>
+        </Enter>
+      ) : (
+        // The card lands first, then the details.
+        <Enter kind="fade" delay={duration.stagger}>
+        <View style={{ gap: theme.space.lg }}>
+          {perks(manualName).map((p) => (
+            <View key={p.title} style={{ flexDirection: 'row', gap: theme.space.md, alignItems: 'center' }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: theme.radius.full,
+                  backgroundColor: theme.color.surface.action,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon name={p.icon} size={18} tone="on-action" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: 'JBMono-Medium' }}>{p.title}</Text>
+                <Text variant="body-sm" tone="secondary">
+                  {p.body}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+        </Enter>
+      )}
     </FlowScreen>
   );
 }

@@ -53,7 +53,7 @@ export default function Account() {
       footer={
         <>
           <FormError text={formError} />
-          <Button label="Create account" loading={busy} onPress={submit} />
+          <Button label="Create account" ready={!emailError(email) && !passwordError(password) && adult} loading={busy} onPress={submit} />
         </>
       }
     >

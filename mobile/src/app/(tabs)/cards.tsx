@@ -1,8 +1,9 @@
+import { useRef } from 'react';
 import { ActionSheetIOS, ScrollView, View } from 'react-native';
 
 import { FormError } from '@/components/onboarding/FormError';
-import { Hint } from '@/components/onboarding/Hint';
-import { OneTapCard } from '@/components/onetap/OneTapCard';
+import { CardCarousel, type CardCarouselHandle } from '@/components/onetap/CardCarousel';
+import { CARD_RATIO } from '@/components/onetap/OneTapCard';
 import { RoutingRules } from '@/components/onetap/RoutingRules';
 import { SortableCardList } from '@/components/onetap/SortableCardList';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,7 @@ import { DemoLabel } from '@/components/ui/DemoLabel';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
 import { apiMessage } from '@/lib/api';
+import { formatClock, useCountdown } from '@/lib/countdown';
 import { LinkCanceled } from '@/lib/plaid';
 import {
   signOut,
@@ -47,6 +49,9 @@ export default function Cards() {
   const card = oneTap.data ?? createCard.data ?? null;
   const cardCount = cards.data?.length ?? 0;
   const cardError = createCard.error ?? linkPhysical.error;
+  // The backend waits up to 45 s for the physical card on the reader (ONETAP_ENROLL_WAIT_MS).
+  const left = useCountdown(linkPhysical.isPending, 45);
+  const carousel = useRef<CardCarouselHandle>(null);
   const defaultId = profile.data?.default_card_id ?? null;
   const manualCard = profile.data?.routing_mode === 'manual' ? cards.data?.find((c) => c.id === profile.data?.manual_card_id) : undefined;
   const manualName = manualCard ? (manualCard.card_product?.name ?? manualCard.account_name) : undefined;
@@ -83,26 +88,53 @@ export default function Cards() {
           Your OneTap card
         </Text>
         {oneTap.isLoading ? (
-          <Skeleton aspectRatio={1.6} radius={theme.radius.xl} />
+          <Skeleton aspectRatio={CARD_RATIO} radius={theme.radius.xl} />
         ) : (
-          <OneTapCard last4={card?.last4 ?? '••••'} status={manualName ? `Always ${manualName}` : card ? 'Best card, automatically' : undefined} auto={!manualName} />
+          <CardCarousel
+            ref={carousel}
+            last4={card?.last4 ?? '••••'}
+            status={manualName ? `Always ${manualName}` : card ? 'Best card, automatically' : undefined}
+            auto={!manualName}
+            created={!!card}
+            physicalLinked={!!card?.physical_linked}
+          />
         )}
         <Text variant="body-sm" tone="secondary">
           {cardCount
             ? `Stands in for your ${cardCount} connected ${cardCount === 1 ? 'card' : 'cards'}: each purchase goes to the one that earns the most.`
             : 'Connect your cards below so it can route each purchase.'}
         </Text>
-        {card ? (
-          <Text variant="body-sm" tone="secondary">
-            {card.physical_linked ? 'Digital and physical card linked.' : 'Digital card ready. The physical card is not linked yet.'}
-          </Text>
-        ) : null}
         <FormError text={cardError ? (apiMessage(cardError) ?? "That didn't finish. Check your connection and try again.") : null} />
-        <Hint text={linkPhysical.isPending ? 'Hold your physical OneTap card on the reader.' : null} />
+        {/* Confirm in place (no alert), after Revolut: the button turns into the question. */}
         {!card && !oneTap.isLoading ? (
-          <Button label="Create my card" loading={createCard.isPending} onPress={() => createCard.mutate()} />
+          <ConfirmMorph
+            block
+            variant="primary"
+            confirmTone="primary"
+            label="Create my card"
+            prompt="Create your OneTap card? It goes live right away as a digital card."
+            confirmLabel="Create card"
+            pendingLabel="Creating your card"
+            doneLabel="Card created"
+            errorLabel="Your card was not created."
+            onConfirm={() => createCard.mutateAsync()}
+          />
         ) : card && !card.physical_linked ? (
-          <Button variant="secondary" label="Link physical card" loading={linkPhysical.isPending} onPress={() => linkPhysical.mutate()} />
+          <ConfirmMorph
+            block
+            variant="secondary"
+            confirmTone="primary"
+            label="Link physical card"
+            prompt="Have your physical OneTap card ready. After you confirm, tap it on the reader."
+            confirmLabel="Start linking"
+            pendingLabel={`Tap your card on the reader · ${formatClock(left)}`}
+            doneLabel="Physical card linked"
+            errorLabel="The card was not linked."
+            onConfirm={() => {
+              carousel.current?.show(1);
+              return linkPhysical.mutateAsync();
+            }}
+          />
         ) : null}
       </View>
 

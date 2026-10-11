@@ -44,7 +44,7 @@ export default function Login() {
       footer={
         <>
           <FormError text={formError} />
-          <Button label="Log in" loading={busy} onPress={submit} />
+          <Button label="Log in" ready={!emailError(email) && !!password} loading={busy} onPress={submit} />
         </>
       }
     >
