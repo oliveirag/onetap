@@ -48,18 +48,16 @@ it("shows this month's spend and rewards, matching the Spending tab", async () =
   const s = aggregate(mockStore.transactions(), mockStore.cards());
   renderHome();
   expect(await screen.findByLabelText(formatCents(s.totalSpendCents))).toBeTruthy();
-  expect(screen.getByLabelText(`plus ${formatCents(s.extraCents)}`)).toBeTruthy();
+  expect(screen.getByLabelText(`plus ${formatCents(s.rewardsCents)}`)).toBeTruthy();
   expect(screen.getByText('Spent this month')).toBeTruthy();
-  expect(screen.getByText('Reclaimed this month')).toBeTruthy();
-  expect(screen.getByText(`${formatCents(s.rewardsCents)} earned in rewards`)).toBeTruthy();
+  expect(screen.getByText('Earned in rewards')).toBeTruthy();
+  expect(screen.queryByText(/Reclaimed/)).toBeNull();
 });
 
-it('projects the yearly reclaimed value from the demo history, labeled as an estimate', async () => {
-  const s = aggregate(mockStore.transactions(), mockStore.cards());
-  expect(s.projectionDollars).toBeGreaterThan(0);
+it('labels the month as including demo history', async () => {
+  expect(aggregate(mockStore.transactions(), mockStore.cards()).hasSeeded).toBe(true);
   renderHome();
-  expect(await screen.findByText(`On pace to reclaim $${s.projectionDollars!.toLocaleString('en-US')} a year`)).toBeTruthy();
-  expect(screen.getByText('Includes demo history · yearly figure is an estimate')).toBeTruthy();
+  expect(await screen.findByText('Includes demo history')).toBeTruthy();
 });
 
 it('groups activity under day headers, newest first', async () => {

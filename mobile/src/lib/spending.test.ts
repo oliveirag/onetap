@@ -80,13 +80,13 @@ it('hides the projection for young histories and non-positive pace', () => {
 it('writes the one-category insight', () => {
   const i = insight([tx({}), tx({})]);
   expect(i?.rule).toBe('one_category');
-  expect(i?.sentence).toBe('All dining this month, $0.78 reclaimed.');
+  expect(i?.sentence).toBe('All dining this month.');
 });
 
 it('names the category where routing earned the most, with its share of spending', () => {
   const i = insight([tx({}), tx({ category_id: 'gas', amount_cents: 3900, reward_value_cents: 195, baseline_value_cents: 39 })]);
   expect(i).toMatchObject({ rule: 'top_reclaimed', category: 'gas', percent: 75, amountCents: 156 });
-  expect(i?.sentence).toBe('Gas: 75% of OneTap spend, $1.56 reclaimed.');
+  expect(i?.sentence).toBe('Gas: 75% of OneTap spend.');
 });
 
 it('falls back to the biggest category when routing earned nothing extra, and flags demo history', () => {

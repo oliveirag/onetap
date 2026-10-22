@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OneTapLockup } from '@/components/brand/OneTapMark';
 import { OneTapCard } from '@/components/onetap/OneTapCard';
+import { TiltStack } from '@/components/onetap/TiltStack';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { duration, ease } from '@/theme/motion';
@@ -41,8 +42,9 @@ export default function Welcome() {
 
       {/* Both cards are narrower than the page so their rotated corners clear the margins, and they
           share one center: the back card peeks out evenly behind the front one. The tilt lives on
-          an inner View: the entering animation owns the outer transform. */}
-      <View style={{ paddingVertical: theme.space['2xl'] }}>
+          an inner View: the entering animation owns the outer transform. Holding the stack tilts
+          it toward the finger. */}
+      <TiltStack style={{ paddingVertical: theme.space['2xl'] }}>
         <Animated.View entering={enter(0)} style={{ position: 'absolute', left: `${(100 - STACK_W) / 2}%`, width: `${STACK_W}%`, top: theme.space['2xl'] }}>
           <View style={{ transform: [{ translateX: theme.space.md }, { rotate: '7deg' }] }}>
             <OneTapCard last4="4821" side="back" />
@@ -53,7 +55,7 @@ export default function Welcome() {
             <OneTapCard last4="4821" status="Best card, automatically" auto />
           </View>
         </Animated.View>
-      </View>
+      </TiltStack>
 
       <View style={{ gap: theme.space.lg }}>
         <Animated.View entering={enter(duration.stagger * 2)} style={{ gap: theme.space.sm }}>

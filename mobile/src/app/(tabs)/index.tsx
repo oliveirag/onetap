@@ -9,7 +9,6 @@ import { Money } from '@/components/ui/Money';
 import { Empty, ErrorState, Skeleton } from '@/components/ui/States';
 import { Text } from '@/components/ui/Text';
 import { groupByDay } from '@/lib/feed';
-import { formatCents } from '@/lib/money';
 import { fakeTap } from '@/lib/mocks/fakeTap';
 import { useProfile, useOneTapCard, useSpending, useTransactions, useUserCards } from '@/lib/queries';
 import { USE_MOCKS } from '@/lib/supabase';
@@ -127,23 +126,13 @@ function MonthSummary({ spending }: { spending: ReturnType<typeof useSpending> }
           </Text>
         </View>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
-          <Money cents={s.extraCents} reward={s.extraCents >= 0} variant="h3" roll />
+          <Money cents={s.rewardsCents} reward variant="h3" roll />
           <Text variant="body-sm" tone="secondary">
-            Reclaimed this month
+            Earned in rewards
           </Text>
         </View>
       </View>
-      <Text variant="body-sm" tone="secondary" style={{ fontVariant: ['tabular-nums'] }}>
-        {formatCents(s.rewardsCents)} earned in rewards
-      </Text>
-      {s.projectionDollars != null ? (
-        <Text variant="body-sm" style={{ fontVariant: ['tabular-nums'] }}>
-          On pace to reclaim ${s.projectionDollars.toLocaleString('en-US')} a year
-        </Text>
-      ) : null}
-      {s.hasSeeded || s.projectionDollars != null ? (
-        <DemoLabel text={[s.hasSeeded && 'Includes demo history', s.projectionDollars != null && 'yearly figure is an estimate'].filter(Boolean).join(' · ')} />
-      ) : null}
+      {s.hasSeeded ? <DemoLabel text="Includes demo history" /> : null}
     </View>
   );
 }
